@@ -66,12 +66,12 @@ def create_test_entity_view(project_syn_id: str, project: Project) -> EntityView
 
 
 # maybe changed this file to
-def write_test_file(text_to_write: str, file_path: Path) -> None:
+def write_test_file(text_to_write: str, file_path: str) -> None:
     """write mock test files
 
     Args:
         text_to_write (str): test string to write
-        file_path (Path): test file path
+        file_path (str): test file path
     """
     if not os.path.exists(file_path):
         with open(file_path, "w") as file:
@@ -79,14 +79,14 @@ def write_test_file(text_to_write: str, file_path: Path) -> None:
 
 
 # create test files locally
-def create_local_test_files(num_test_files: int) -> None:
+def create_local_test_files(num_test_files: int, test_folder_path: str) -> None:
     """create local test files
 
     Args:
         num_test_files (int): number of test files to be created locally
+        test_folder_path (str): path of local test folder
     """
-    current_directory = os.getcwd()
-    test_dir = current_directory + "/test_files"
+    test_dir = test_folder_path
     if not os.path.exists(test_dir):
         os.makedirs(test_dir)
 
@@ -100,35 +100,53 @@ def create_local_test_files(num_test_files: int) -> None:
             write_test_file("writing test files", sample_file)
 
 
-async def store_test_files_on_syn(syn_dataset: Folder) -> None:
+async def store_test_file_on_syn(
+    syn_dataset: Folder, test_file: str, test_folder: Path
+) -> None:
     """asynchronously store test files on synapse
 
     Args:
         syn_dataset (Folder): synapse dataset folder
+        test_file (Str): test file name
+        test_folder (str): path of test folder
     """
-    current_directory = os.getcwd()
-    test_dir = current_directory + "/test_files"
-    files = os.listdir(test_dir)
+    path_test_file = test_folder + "/" + test_file
+    file = File(path=path_test_file)
+    await file.store_async(parent=syn_dataset)
 
-    # store the files async
-    # assuming that we are storing all the test files
+
+async def store_multi_test_files_on_syn(syn_dataset: Folder, test_folder: str) -> None:
+    """store multiple test files on synapse
+
+    Args:
+        test_folder (str): store multiple test files on synapse
+    """
+    # assume directory is called "test files"
+    files = os.listdir(test_folder)
     for test_file in files:
-        path_test_file = current_directory + "/test_files/" + test_file
-        file = File(path=path_test_file)
-        await file.store_async(parent=syn_dataset)
+        task = store_test_file_on_syn(
+            syn_dataset=syn_dataset, test_folder=test_folder, test_file=test_file
+        )
+        await asyncio.gather(task)
 
 
-def create_test_files(num_file: int) -> None:
+def create_test_files(num_file: int, project_name: str, test_folder_path: str) -> None:
     """create test files in a given folder
 
     Args:
         num_file (int): number of test files to create in a folder
+        project_name (str): name of project on synapse
+        test_folder_path (str): path of local test folder
     """
-    project, project_id = create_test_project("My testing project")
+    project, project_id = create_test_project(project_name)
     data_folder = create_test_folder(project)
     entity_view = create_test_entity_view(project_syn_id=project_id, project=project)
-    create_local_test_files(num_file)
-    asyncio.run(store_test_files_on_syn(data_folder))
+    create_local_test_files(num_file, test_folder_path)
+    asyncio.run(
+        store_multi_test_files_on_syn(
+            syn_dataset=data_folder, test_folder=test_folder_path
+        )
+    )
 
     return data_folder.id, project_id, entity_view.id
 
@@ -190,7 +208,14 @@ def clean_up_tests(item: str):
             print(ex)
 
 
-dataset_id, project_id, asset_view_id = create_test_files(1000)
+test_folder_dir = (
+    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_files_folder"
+)
+dataset_id, project_id, asset_view_id = create_test_files(
+    num_file=10,
+    project_name="API test project random",
+    test_folder_path=test_folder_dir,
+)
 file_path_manifest = "/Users/lpeng/Downloads/test_bulkrna-seq.csv"
 
 # dataset_id = "syn57430952"
