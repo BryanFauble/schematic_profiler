@@ -43,6 +43,19 @@ def create_test_folder(project: Project) -> Folder:
     data_folder = syn.store(data_folder)
     return data_folder
 
+def create_nested_test_folder(project: Project, num_layer: int, ) -> Folder: 
+    """create nested test folder
+
+    Args: 
+        project (Project): synapse Project
+        num_layer (int): number of layer of project to be created
+    Returns: 
+        Folder: synapse folder created
+    """
+    data_folder = Folder(f"Test sub folder", parent=project)
+
+
+
 
 def create_test_entity_view(project_syn_id: str, project: Project) -> EntityViewSchema:
     """create test entity view on synapse
@@ -150,7 +163,10 @@ def create_test_files(num_file: int, project_name: str, test_folder_path: str) -
 
     return data_folder.id, project_id, entity_view.id
 
-def create_test_folder_
+def create_nested_test_folder(num_level_to_create: int):
+    """create nested folder structures
+    """
+
 
 def clean_up_tests(item: str):
     if os.path.exists(item):
