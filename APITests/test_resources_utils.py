@@ -3,8 +3,11 @@ import logging
 import os
 import shutil
 from pathlib import Path
+from typing import List, Tuple, Union
+
 from synapseclient import EntityViewSchema, EntityViewType, Folder, Project
 from synapseclient.models import File
+
 from utils import StoreRuntime
 
 logger = logging.getLogger("test upload annotations parameter")
@@ -30,31 +33,21 @@ def create_test_project(project_name: str) -> Project:
 
 
 # create a folder under a project
-def create_test_folder(project: Project) -> Folder:
+def create_test_folder(
+    parent: Union[Project, Folder], folder_name: str = "Test sub folder"
+) -> Folder:
     """synapse test folder
 
     Args:
-        project (Project): synapse project
+        parent (Project or Folder): synapse project
+        folder_name (str): folder name
 
     Returns:
         Folder: synapse folder created
     """
-    data_folder = Folder("Test sub folder", parent=project)
+    data_folder = Folder(folder_name, parent=parent)
     data_folder = syn.store(data_folder)
     return data_folder
-
-def create_nested_test_folder(project: Project, num_layer: int, ) -> Folder: 
-    """create nested test folder
-
-    Args: 
-        project (Project): synapse Project
-        num_layer (int): number of layer of project to be created
-    Returns: 
-        Folder: synapse folder created
-    """
-    data_folder = Folder(f"Test sub folder", parent=project)
-
-
 
 
 def create_test_entity_view(project_syn_id: str, project: Project) -> EntityViewSchema:
@@ -132,6 +125,7 @@ async def store_multi_test_files_on_syn(syn_dataset: Folder, test_folder: str) -
     """store multiple test files on synapse
 
     Args:
+        syn_dataset (Folder): synapse dataset Folder
         test_folder (str): store multiple test files on synapse
     """
     # assume directory is called "test files"
@@ -143,13 +137,18 @@ async def store_multi_test_files_on_syn(syn_dataset: Folder, test_folder: str) -
         await asyncio.gather(task)
 
 
-def create_test_files(num_file: int, project_name: str, test_folder_path: str) -> None:
+def create_test_files(
+    num_file: int, project_name: str, test_folder_path: str
+) -> Tuple[str, str, str]:
     """create test files in a given folder
 
     Args:
         num_file (int): number of test files to create in a folder
         project_name (str): name of project on synapse
         test_folder_path (str): path of local test folder
+
+    Returns:
+        Tuple[str, str, str]: data folder id, project id, asset view id
     """
     project, project_id = create_test_project(project_name)
     data_folder = create_test_folder(project)
@@ -163,9 +162,60 @@ def create_test_files(num_file: int, project_name: str, test_folder_path: str) -
 
     return data_folder.id, project_id, entity_view.id
 
-def create_nested_test_folder(num_level_to_create: int):
-    """create nested folder structures
+
+def create_test_folder_recursive(
+    max_depth: int, num_folder_per_layer: int, next_levels_test_folder: List[Folder]
+) -> None:
+    if max_depth == 0:
+        return
+
+    new_levels_test_folder = []
+    for i in range(num_folder_per_layer):
+        for parent in next_levels_test_folder:
+            sub_data_folder = create_test_folder(
+                parent=parent, folder_name=f"Test folder {i}"
+            )
+            new_levels_test_folder.append(sub_data_folder)
+
+    create_test_folder_recursive(
+        max_depth=max_depth - 1,
+        num_folder_per_layer=num_folder_per_layer,
+        next_levels_test_folder=new_levels_test_folder,
+    )
+
+
+def create_multi_layer_test_folders(
+    num_folder_per_layer: int, num_layer: int, project_name: str
+) -> Tuple[str, str, str]:
+    """create multiple layers of test folder for testing
+
+    Args:
+        num_folder_per_layer (int): number of folder per layer
+        num_layer (int): number of layers
+        project_name (str): project name
+
+    Returns:
+        Tuple[str, str, str]: data folder id, project id, asset view id
     """
+    project, project_id = create_test_project(project_name)
+    entity_view = create_test_entity_view(project_syn_id=project_id, project=project)
+
+    first_layer_folder = []
+
+    # create the first layer
+    for i in range(num_folder_per_layer):
+        sub_data_folder = create_test_folder(
+            parent=project, folder_name=f"Test folder {i}"
+        )
+        first_layer_folder.append(sub_data_folder)
+
+    create_test_folder_recursive(
+        max_depth=num_layer - 1,
+        num_folder_per_layer=num_folder_per_layer,
+        next_levels_test_folder=first_layer_folder,
+    )
+
+    return project_id, entity_view.id
 
 
 def clean_up_tests(item: str):
