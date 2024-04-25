@@ -23,7 +23,7 @@ def execute_manifest_generate_use_annotations_comparison(
         asset_view_id (Optional[str]): asset view id
         dataset_id (Optional[str]): dataset id
     """
-    use_annotations = [True]
+    use_annotations = [True, False]
     CONCURRENT_THREADS = 1
     base_url = (
         "https://schematic-dev-refactor.api.sagebionetworks.org/v1/manifest/generate"
