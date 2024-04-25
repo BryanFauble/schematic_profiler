@@ -1,8 +1,9 @@
 import logging
 from typing import Optional
-from utils import send_request
+
 from manifest_generator import GenerateManifest
 from test_resources_utils import create_test_files
+from utils import send_request
 
 logger = logging.getLogger("test manifest generation")
 
