@@ -1,9 +1,9 @@
-
 import logging
 from utils import StoreRuntime, send_manifest, send_post_request
 from test_resources_utils import create_test_files
 
 logger = logging.getLogger("test upload annotations parameter")
+
 
 def execute_submission_comparison(
     dataset_id: str, asset_view_id: str, file_path_manifest: str, num_time: int
@@ -19,7 +19,7 @@ def execute_submission_comparison(
     srt = StoreRuntime()
     token = srt.get_access_token()
     headers = {"Authorization": f"Bearer {token}"}
-    file_annotations_upload_lst = [False]
+    file_annotations_upload_lst = [True, False]
     base_url = "http://localhost:3001/v1/model/submit"
     params = {
         "manifest_record_type": "file_only",
@@ -37,7 +37,7 @@ def execute_submission_comparison(
 
         # try submitting x amount of time and calculate average
         for count in range(num_time):
-            dt_string, time_diff, all_status_code = send_post_request(
+            _, time_diff, all_status_code = send_post_request(
                 base_url, params, 1, send_manifest, file_path_manifest, headers
             )
             if all_status_code["200"] != 1:
@@ -48,7 +48,6 @@ def execute_submission_comparison(
         logger.info(
             f"average time of submitting a manifest when upload_file_annotations set to {i} is: {average_submission_time}"
         )
-
 
 
 test_folder_dir = (
