@@ -218,6 +218,63 @@ def create_multi_layer_test_folders(
     return project_id, entity_view.id
 
 
+def create_multi_layer_test_folders_two(
+    first_layer_num: int,
+    max_layer: int,
+    project_name: str,
+    total_entities_to_create: int,
+) -> Tuple[str, str, str]:
+    project, project_id = create_test_project(project_name)
+    entity_view = create_test_entity_view(project_syn_id=project_id, project=project)
+
+    first_layer_folder = []
+
+    # create the first layer
+    for i in range(first_layer_num):
+        sub_data_folder = create_test_folder(
+            parent=project, folder_name=f"Test folder {i}"
+        )
+        first_layer_folder.append(sub_data_folder)
+
+    create_test_folder_fixed_entities_recursive(
+        max_depth=max_layer - 1,
+        next_levels_test_folder=first_layer_folder,
+        remained_entities_to_create=total_entities_to_create - first_layer_num,
+    )
+
+    return project_id, entity_view.id
+
+
+def create_test_folder_fixed_entities_recursive(
+    max_depth: int,
+    next_levels_test_folder: List[Folder],
+    remained_entities_to_create: int,
+) -> None:
+    """create number of test folders for a fixed number of entities and layers
+
+    Args:
+        max_depth (int): _description_
+        num_folder_per_layer (int): _description_
+        next_levels_test_folder (List[Folder]): _description_
+        fixed_entities (int): _description_
+    """
+    if max_depth == 0 or remained_entities_to_create == 0:
+        return
+
+    new_levels_test_folder = []
+
+    for parent in next_levels_test_folder:
+        sub_data_folder = create_test_folder(parent=parent, folder_name="Test folder")
+        new_levels_test_folder.append(sub_data_folder)
+        remained_entities_to_create = remained_entities_to_create - 1
+
+    create_test_folder_fixed_entities_recursive(
+        max_depth=max_depth - 1,
+        next_levels_test_folder=new_levels_test_folder,
+        remained_entities_to_create=remained_entities_to_create,
+    )
+
+
 def clean_up_tests(item: str):
     if os.path.exists(item):
         try:
