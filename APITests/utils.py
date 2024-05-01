@@ -88,7 +88,7 @@ def send_manifest(
         Response: a response object
     """
     wd = os.getcwd()
-    test_manifest_path = os.path.join(wd, "APITests", manifest_path)
+    test_manifest_path = os.path.join(wd, manifest_path)
 
     if not os.path.exists(test_manifest_path):
         logger.error(
