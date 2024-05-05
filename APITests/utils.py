@@ -57,7 +57,8 @@ DATA_FLOW_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/data_
 
 # BASE_URL = "https://schematic-dev.api.sagebionetworks.org/v1"
 BASE_URL = "https://localhost/v1"
-LATENCY_TABLE_STORE = "syn58975617"
+# LATENCY_TABLE_STORE = "syn58975617"
+LATENCY_TABLE_STORE = "syn51385540"
 
 # define type Row
 Row = List[Union[str, int, dict, bool]]
