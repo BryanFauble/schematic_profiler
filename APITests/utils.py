@@ -333,7 +333,7 @@ def save_run_time_result(
     num_status_504 = status_code_dict["504"]
     num_status_503 = status_code_dict["503"]
     # Convert to epoch time in milliseconds
-    epochtime = int(pd.to_datetime(dt_string, format='%d-%m-%Y %H:%M:%S').strftime("%s")) * 1000
+    epochtime = int(pd.to_datetime(dt_string, format='%d/%m/%Y %H:%M:%S').strftime("%s")) * 1000
     new_row = [
         endpoint_name,
         description,
