@@ -365,7 +365,6 @@ class StoreRuntime:
             str: a token to access asset store
         """
         # for running on github action
-        #if "SYNAPSE_AUTH_TOKEN" in os.environ:
         token = os.getenv("SYNAPSE_AUTH_TOKEN")
         if token is None:
             token = os.getenv("TOKEN")
