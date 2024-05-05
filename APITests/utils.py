@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Callable, Tuple, List, Union
 
 import pytz
+import pandas as pd
 import requests
 import synapseclient
 from requests import Response
@@ -54,7 +55,9 @@ HTAN_SCHEMA_URL = (
 
 DATA_FLOW_SCHEMA_URL = "https://raw.githubusercontent.com/Sage-Bionetworks/data_flow/main/inst/data_model/dataflow_component.csv"
 
-BASE_URL = "https://schematic-dev.api.sagebionetworks.org/v1"
+# BASE_URL = "https://schematic-dev.api.sagebionetworks.org/v1"
+BASE_URL = "https://localhost/v1"
+LATENCY_TABLE_STORE = "syn58975617"
 
 # define type Row
 Row = List[Union[str, int, dict, bool]]
@@ -71,7 +74,7 @@ def fetch(url: str, params: dict, headers: dict = None) -> Response:
     Returns:
         Response: a response object
     """
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=headers, verify=False)
     return response
 
 
@@ -100,6 +103,7 @@ def send_manifest(
         params=params,
         headers=headers,
         files={"file_name": open(test_manifest_path, "rb")},
+        verify=False
     )
 
 
@@ -328,7 +332,8 @@ def save_run_time_result(
     num_status_500 = status_code_dict["500"]
     num_status_504 = status_code_dict["504"]
     num_status_503 = status_code_dict["503"]
-
+    # Convert to epoch time in milliseconds
+    epochtime = int(pd.to_datetime(dt_string, format='%d-%m-%Y %H:%M:%S').strftime("%s")) * 1000
     new_row = [
         endpoint_name,
         description,
@@ -338,7 +343,7 @@ def save_run_time_result(
         output_format,
         restrict_rules,
         asset_view,
-        dt_string,
+        epochtime,
         manifest_record_type,
         num_concurrent,
         latency,
@@ -360,13 +365,12 @@ class StoreRuntime:
             str: a token to access asset store
         """
         # for running on github action
-        if "SYNAPSE_AUTH_TOKEN" in os.environ:
-            token = os.environ["SYNAPSE_AUTH_TOKEN"]
-            logger.debug("Successfully found synapse access token")
-        else:
-            token = os.environ["TOKEN"]
-        if token is None or "":
-            logger.error("Synapse access token is not found")
+        #if "SYNAPSE_AUTH_TOKEN" in os.environ:
+        token = os.getenv("SYNAPSE_AUTH_TOKEN")
+        if token is None:
+            token = os.getenv("TOKEN")
+        if token is None or token == "":
+            raise ValueError("Synapse access token is not found")
 
         return token
 
@@ -376,10 +380,10 @@ class StoreRuntime:
         Returns:
             synapse object
         """
-        auth_token = self.get_access_token()
+        #auth_token = self.get_access_token()
         try:
-            syn = synapseclient.Synapse()
-            syn.login(authToken=auth_token)
+            syn = synapseclient.login()
+            #syn.login(authToken=auth_token)
         except (
             synapseclient.core.exceptions.SynapseNoCredentialsError,
             synapseclient.core.exceptions.SynapseHTTPError,
@@ -392,7 +396,7 @@ class StoreRuntime:
         syn = self.login_synapse()
 
         # get existing table from synapse
-        existing_table_schema = syn.get("syn51385540")
+        existing_table_schema = syn.get(LATENCY_TABLE_STORE)
 
         # add new row to table
         syn.store(Table(existing_table_schema, rows))
