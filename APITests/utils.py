@@ -12,6 +12,7 @@ import synapseclient
 from requests import Response
 from requests.exceptions import InvalidSchema
 from synapseclient import Table
+from urllib3.exceptions import InsecureRequestWarning
 
 
 # Create a custom formatter with colors
@@ -59,6 +60,10 @@ BASE_URL = "https://schematic-dev.api.sagebionetworks.org/v1"
 # define type Row
 Row = List[Union[str, int, dict, bool]]
 MultiRow = List[Row]
+
+
+# Suppress only the single warning from urllib3 needed.
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
 
 def fetch(url: str, params: dict, headers: dict = None) -> Response:

@@ -137,3 +137,6 @@ def monitor_manifest_generator() -> Tuple[Row, Row, Row, Row]:
     row_four = gm_htan.generate_new_manifest_HTAN_google_sheet()
 
     return row_one, row_two, row_three, row_four
+
+
+monitor_manifest_generator()
