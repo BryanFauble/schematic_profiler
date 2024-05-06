@@ -71,7 +71,7 @@ def fetch(url: str, params: dict, headers: dict = None) -> Response:
     Returns:
         Response: a response object
     """
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params=params, headers=headers, verify=False)
     return response
 
 
@@ -100,6 +100,7 @@ def send_manifest(
         params=params,
         headers=headers,
         files={"file_name": open(test_manifest_path, "rb")},
+        verify=False,
     )
 
 
