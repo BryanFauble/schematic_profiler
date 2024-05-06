@@ -12,10 +12,6 @@ from utils import StoreRuntime
 
 logger = logging.getLogger("test upload annotations parameter")
 
-# login to synapse
-srt = StoreRuntime()
-syn = srt.login_synapse()
-
 
 @dataclass
 class CreateSynapseResources:
@@ -45,8 +41,8 @@ class CreateSynapseResources:
         """synapse test folder
 
         Args:
-            parent (Project or Folder): synapse project
-            folder_name (str): name of dataset folder
+            parent (Union[Project, Folder]): synapse project
+            folder_name (Optional[str], optional): name of dataset folder. Defaults to "test folder".
 
         Returns:
             Folder: synapse folder created
@@ -67,6 +63,7 @@ class CreateSynapseResources:
         Args:
             project_syn_id (str): synapse project id
             project (Project): synapse project
+            entity_view_name (Optional[str], optional): Name of entity view. Defaults to "test view".
 
         Returns:
             EntityViewSchema: entity view created
@@ -89,8 +86,13 @@ class CreateSynapseResources:
     ) -> Tuple[Project, str, Folder, EntityViewSchema]:
         """create all basic synapse resources
 
+        Args:
+            project_name (Optional[str], optional): Name of synapse test project. Defaults to "My favorite test project".
+            folder_name (Optional[str], optional): Name of local test folder. Defaults to "test folder".
+            entity_view_name (Optional[str], optional): Name of entity view. Defaults to "test view".
+
         Returns:
-            synapse project, the project id, the data folder, and entity view
+            Tuple[Project, str, Folder, EntityViewSchema]: synapse project, the project id, the data folder, and entity view
         """
         project, project_id = self.create_test_project(project_name=project_name)
         data_folder = self.create_test_folder(project, folder_name=folder_name)
@@ -143,7 +145,6 @@ class CreateTestFiles:
         Args:
             syn_dataset (Folder): synapse dataset folder
             test_file (Str): test file name
-            test_folder (str): path of test folder
         """
         test_folder = self.test_folder_path
         path_test_file = test_folder + "/" + test_file
@@ -155,7 +156,6 @@ class CreateTestFiles:
 
         Args:
             syn_dataset (Folder): synapse dataset Folder
-            test_folder (str): store multiple test files on synapse
         """
         # assume directory is called "test files"
         files = os.listdir(self.test_folder_path)
@@ -180,12 +180,10 @@ class CreateTestFiles:
             project_name (str): name of project on synapse
             test_folder_path (str): path of local test folder
             entity_view (Optional[str]): name of entity view
+            text_to_write(Optional[str]): text to write in test files.
         Returns:
             Tuple[str, str, str]: data folder id, project id, asset view id
         """
-        # project, project_id = create_test_project(project_name)
-        # data_folder = create_test_folder(project)
-        # entity_view = create_test_entity_view(project_syn_id=project_id, project=project)
         cyr = CreateSynapseResources()
         _, project_id, data_folder, entity_view = cyr.create_all_basic_resources(
             project_name=project_name,
@@ -219,6 +217,13 @@ class CreateTestFolders:
         num_folder_per_layer: int,
         max_depth: int,
     ) -> None:
+        """create number of test folders with a certain number of folders per layer
+
+        Args:
+            next_levels_test_folder (List[Folder]): next level of folder
+            num_folder_per_layer (int): number of folders per layer
+            max_depth (int): maximum depth of folders
+        """
         if max_depth == 0:
             return
         new_levels_test_folder = []
@@ -237,7 +242,7 @@ class CreateTestFolders:
 
     def create_multi_layer_test_folders(
         self,
-        num_folder_per_layer,
+        num_folder_per_layer: int,
         project_name: str,
     ) -> Tuple[str, str, str]:
         """create multiple layers of test folder for testing
@@ -325,7 +330,15 @@ class CreateTestFolders:
         num_files: Optional[int] = 0,
         test_folder_path: Optional[str] = None,
     ) -> None:
-        """create number of test folders for a fixed number of entities and layers"""
+        """create number of test folders for a fixed number of entities and layers
+
+        Args:
+            max_depth (int): max depth of folders
+            next_levels_test_folder (List[Folder]): list of folders of the next level
+            remained_entities_to_create (int): remaining number of folders to create
+            num_files (Optional[int], optional): number of files to attach to the next layer of folders. Defaults to 0.
+            test_folder_path (Optional[str], optional): if attaching files, specify the local test folder that stores the files. Defaults to None.
+        """
         if max_depth == 0 or remained_entities_to_create == 0:
             return
 
