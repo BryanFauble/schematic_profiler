@@ -116,20 +116,35 @@ class CreateTestFiles:
             with open(file_path, "w") as file:
                 file.write(self.text_to_write)
 
-    # create test files locally
-    def create_local_test_files(self) -> None:
-        """create local test files"""
+    def create_local_test_dir(self) -> str:
         test_dir = self.test_folder_path
+        if not test_dir:
+            logger.error("Please specify a test folder directory")
         if os.path.exists(test_dir):
             shutil.rmtree(test_dir)
 
         os.makedirs(test_dir)
+        return test_dir
 
+    def check_num_files_test_folder(self) -> int:
+        """check number of files in a local test folder
+
+        Returns:
+            int: number of files in a local test folder
+        """
+        test_dir = self.test_folder_path
         files = os.listdir(test_dir)
         current_num_files = len(files)
+        return current_num_files
+
+    # create test files locally
+    def create_local_test_files(self) -> None:
+        test_dir = self.create_local_test_dir()
+
+        current_num_files = self.check_num_files_test_folder()
 
         if current_num_files < self.num_test_files:
-            num_files_to_add = self.num_test_files - len(files)
+            num_files_to_add = self.num_test_files - current_num_files
 
             for i in range(current_num_files, current_num_files + num_files_to_add):
                 sample_file = f"{test_dir}/sample_file_{i}.txt"
@@ -151,14 +166,20 @@ class CreateTestFiles:
         file = File(path=path_test_file)
         await file.store_async(parent=syn_dataset)
 
-    async def store_multi_test_files_on_syn(self, syn_dataset: Folder) -> None:
-        """store multiple test files on synapse
+    async def store_multi_test_files_on_syn(
+        self, syn_dataset: Folder, num_files: Optional[int] = 0
+    ) -> None:
+        """store multiple test files on synapse. By default, upload all the files within local test folder
 
         Args:
             syn_dataset (Folder): synapse dataset Folder
+            num_files: only upload a certain number of files on synapse. Avoid uploading everything in local test folder.
         """
         # assume directory is called "test files"
         files = os.listdir(self.test_folder_path)
+        if num_files > 0:
+            files = files[:num_files]
+
         for test_file in files:
             task = self.store_test_file_on_syn(
                 syn_dataset=syn_dataset, test_file=test_file
@@ -185,9 +206,13 @@ class CreateTestFiles:
             Tuple[str, str, str]: data folder id, project id, asset view id
         """
         cyr = CreateSynapseResources()
+        if "/" in test_folder_path:
+            test_folder_name = test_folder_path.split("/")[-1]
+        else:
+            test_folder_name = test_folder_path
         _, project_id, data_folder, entity_view = cyr.create_all_basic_resources(
             project_name=project_name,
-            folder_name=test_folder_path,
+            folder_name=test_folder_name,
             entity_view_name=entity_view,
         )
 
@@ -244,12 +269,14 @@ class CreateTestFolders:
         self,
         num_folder_per_layer: int,
         project_name: str,
+        ignore_first_layer: Optional[bool] = False,
     ) -> Tuple[str, str, str]:
         """create multiple layers of test folder for testing
 
         Args:
             num_folder_per_layer (int): number of folder per layer
             project_name (str): project name
+            ignore_first_layer: if true, the first layer only has one folder
 
         Returns:
             Tuple[str, str, str]: data folder id, project id, asset view id
@@ -261,15 +288,20 @@ class CreateTestFolders:
         entity_view = self.create_synapse_resource.create_test_entity_view(
             project_syn_id=project_id, project=project
         )
-
         first_layer_folder = []
 
-        # create the first layer
-        for i in range(num_folder_per_layer):
+        if ignore_first_layer:
             sub_data_folder = self.create_synapse_resource.create_test_folder(
-                parent=project, folder_name=f"Test folder {i}"
+                parent=project, folder_name="Test folder"
             )
             first_layer_folder.append(sub_data_folder)
+        else:
+            # create the first layer
+            for i in range(num_folder_per_layer):
+                sub_data_folder = self.create_synapse_resource.create_test_folder(
+                    parent=project, folder_name=f"Test folder {i}"
+                )
+                first_layer_folder.append(sub_data_folder)
 
         self.create_test_folder_recursive(
             num_folder_per_layer=num_folder_per_layer,
@@ -282,16 +314,17 @@ class CreateTestFolders:
         self,
         first_layer_num: int,
         project_name: str,
-        total_folders_to_create: int,
+        num_folder_per_layer: Optional[int] = 1,
         num_files: Optional[int] = 0,
     ) -> Tuple[str, str]:
-        """create multiple layers of test folders with fixed total number of folders
+        """create multiple layers of test folders with fixed total number of folders. Do not care number of folders per layer.
+        For example,
 
         Args:
             first_layer_num (int): number of folders in the first layer
             project_name (str): name of project
-            total_folders_to_create (int): total number of folders to create
-            num_files (Optional[int]): number of files attached to folders in each layer (except the first layer)
+            num_folder_per_layer: total number of folders to create per layer. Ignore the first layer
+            num_files (Optional[int]): number of files attached to each folder in each layer (except the first layer)
 
         Returns:
             Tuple[str, str]: project id, entity view id
@@ -315,7 +348,7 @@ class CreateTestFolders:
         self.create_test_folder_fixed_entities_recursive(
             max_depth=self.max_depth - 1,
             next_levels_test_folder=first_layer_folder,
-            remained_entities_to_create=total_folders_to_create - first_layer_num,
+            num_folder_per_layer=num_folder_per_layer,
             num_files=num_files,
             test_folder_path=self.test_folder_path,
         )
@@ -326,7 +359,7 @@ class CreateTestFolders:
         self,
         max_depth: int,
         next_levels_test_folder: List[Folder],
-        remained_entities_to_create: int,
+        num_folder_per_layer: Optional[int] = 1,
         num_files: Optional[int] = 0,
         test_folder_path: Optional[str] = None,
     ) -> None:
@@ -335,34 +368,43 @@ class CreateTestFolders:
         Args:
             max_depth (int): max depth of folders
             next_levels_test_folder (List[Folder]): list of folders of the next level
-            remained_entities_to_create (int): remaining number of folders to create
+            num_folder_per_layer (int):  create number of folders per layer
             num_files (Optional[int], optional): number of files to attach to the next layer of folders. Defaults to 0.
             test_folder_path (Optional[str], optional): if attaching files, specify the local test folder that stores the files. Defaults to None.
         """
-        if max_depth == 0 or remained_entities_to_create == 0:
+        if max_depth == 0:
             return
+
+        # calculate total number of files to create locally
+        total_num_files = num_files
+        ctf = CreateTestFiles(
+            num_test_files=total_num_files, test_folder_path=test_folder_path
+        )
+        num_files_test_folder = ctf.check_num_files_test_folder()
+        # if test folders don't have enough files, then recreate the test folders.
+        if total_num_files > num_files_test_folder:
+            ctf.create_local_test_files()
 
         new_levels_test_folder = []
 
         for parent in next_levels_test_folder:
-            sub_data_folder = self.create_synapse_resource.create_test_folder(
-                parent=parent, folder_name="Test folder"
-            )
-            new_levels_test_folder.append(sub_data_folder)
-            remained_entities_to_create = remained_entities_to_create - 1
-            if num_files > 0 and test_folder_path:
-                ctf = CreateTestFiles(
-                    num_test_files=num_files, test_folder_path=self.test_folder_path
+            for i in range(num_folder_per_layer):
+                sub_data_folder = self.create_synapse_resource.create_test_folder(
+                    parent=parent, folder_name=f"Test folder {i}"
                 )
-                ctf.create_local_test_files()
-                asyncio.run(
-                    ctf.store_multi_test_files_on_syn(syn_dataset=sub_data_folder)
-                )
+                new_levels_test_folder.append(sub_data_folder)
+
+                if num_files > 0 and test_folder_path:
+                    loop = asyncio.get_event_loop()
+                    loop.run_until_complete(
+                        ctf.store_multi_test_files_on_syn(
+                            syn_dataset=sub_data_folder, num_files=num_files
+                        )
+                    )
 
         self.create_test_folder_fixed_entities_recursive(
             max_depth=max_depth - 1,
             next_levels_test_folder=new_levels_test_folder,
-            remained_entities_to_create=remained_entities_to_create,
             num_files=num_files,
             test_folder_path=self.test_folder_path,
         )

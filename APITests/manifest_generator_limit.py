@@ -1,6 +1,4 @@
-from test_resources_utils import CreateTestFolders, CreateTestFiles
-import asyncio
-from utils import StoreRuntime
+from test_resources_utils import CreateTestFolders
 from typing import Optional
 from utils import send_request
 
@@ -9,26 +7,23 @@ import logging
 
 logger = logging.getLogger("manifest generation benchmark")
 
-create_test_folders = CreateTestFolders(max_depth=2)
+create_test_folders = CreateTestFolders(max_depth=2, test_folder_path="test_files")
 
 
 # create a project with 2000 folders
-project_id, _ = create_test_folders.create_multi_layer_test_folders(
-    project_name="API test project - manifest generate limit - 7",
-    num_folder_per_layer=2000,
-    ignore_first_layer=True,
+
+project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
+    first_layer_num=1,
+    project_name="API test project - manifest generate limit - 9",
+    num_folder_per_layer=1800,
+    num_files=1,
 )
 
-# added 2000 files
-create_test_files_new = CreateTestFiles(
-    num_test_files=2000, test_folder_path="test_files"
-)
-srt = StoreRuntime()
-syn = srt.login_synapse()
-folder_entity = syn.get("syn59194832")
-create_test_files_new.create_local_test_files()
-asyncio.run(
-    create_test_files_new.store_multi_test_files_on_syn(syn_dataset=folder_entity)
+project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
+    first_layer_num=1,
+    project_name="API test project - manifest generate limit - 10",
+    num_folder_per_layer=2000,
+    num_files=1,
 )
 
 
@@ -42,6 +37,7 @@ def execute_manifest_generate_benchmark(
     gm = GenerateManifest(url=schema_url, use_annotation=True, data_type=data_type)
     gm.params["asset_view"] = asset_view_id
     gm.params["dataset_id"] = dataset_id
+    gm.params["output_format"] = "google_sheet"
 
     base_url = (
         "https://schematic-dev-refactor.api.sagebionetworks.org/v1/manifest/generate"
@@ -59,14 +55,14 @@ def execute_manifest_generate_benchmark(
 
 schema_url = "https://raw.githubusercontent.com/Sage-Bionetworks/schematic/develop/tests/data/example.model.jsonld"
 data_type = "BulkRNA-seqAssay"
-asset_view_id = "syn59194831"
-dataset_id = "syn59194832"
+asset_view_id = ""
+dataset_id = ""
 num_time = 10
 
-execute_manifest_generate_benchmark(
-    schema_url=schema_url,
-    data_type=data_type,
-    num_time=num_time,
-    asset_view_id=asset_view_id,
-    dataset_id=dataset_id,
-)
+# execute_manifest_generate_benchmark(
+#     schema_url=schema_url,
+#     data_type=data_type,
+#     num_time=num_time,
+#     asset_view_id=asset_view_id,
+#     dataset_id=dataset_id,
+# )

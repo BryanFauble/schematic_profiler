@@ -1,6 +1,6 @@
 import logging
 from utils import StoreRuntime, send_manifest, send_post_request
-from test_resources_utils import create_test_files
+from test_resources_utils import CreateTestFiles
 
 logger = logging.getLogger("test upload annotations parameter")
 
@@ -50,10 +50,8 @@ def execute_submission_comparison(
         )
 
 
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_files_folder"
-)
-dataset_id, project_id, asset_view_id = create_test_files(
+test_folder_dir = "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/APITests/test_new_files"
+dataset_id, project_id, asset_view_id = CreateTestFiles.create_test_files(
     num_file=10,
     project_name="API test project random",
     test_folder_path=test_folder_dir,

@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 
 from manifest_generator import GenerateManifest
-from test_resources_utils import create_test_files
+from test_resources_utils import CreateTestFiles
 from utils import send_request
 
 logger = logging.getLogger("test manifest generation")
@@ -50,14 +50,14 @@ def execute_manifest_generate_use_annotations_comparison(
 
 
 # case 1: a dataset folder with 10 dataset files
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_new_files"
-)
-dataset_id, project_id, asset_view_id = create_test_files(
+test_folder_dir = "test_new_files"
+
+dataset_id, project_id, asset_view_id = CreateTestFiles.create_test_files(
     num_file=10,
     project_name="API manifest generate project",
     test_folder_path=test_folder_dir,
 )
+
 print("dataset id", dataset_id)
 print("project id", project_id)
 print("asset view", asset_view_id)
@@ -65,6 +65,7 @@ print("asset view", asset_view_id)
 schema_url = "https://raw.githubusercontent.com/Sage-Bionetworks/schematic/develop/tests/data/example.model.jsonld"
 data_type = "BulkRNA-seqAssay"
 num_time = 10
+
 execute_manifest_generate_use_annotations_comparison(
     schema_url=schema_url,
     data_type=data_type,
@@ -74,11 +75,8 @@ execute_manifest_generate_use_annotations_comparison(
 )
 
 
-# case 2: a dataset folder with 10 dataset files
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_new_files"
-)
-dataset_id, project_id, asset_view_id = create_test_files(
+# case 2: a dataset folder with 100 dataset files
+dataset_id, project_id, asset_view_id = CreateTestFiles.create_test_files(
     num_file=100,
     project_name="API manifest generate project 2",
     test_folder_path=test_folder_dir,

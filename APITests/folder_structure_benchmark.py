@@ -50,86 +50,85 @@ def get_change(current, previous):
 
 # case 1: a dataset folder has 2 layers, and each layer has 3 folders
 create_test_folders = CreateTestFolders(max_depth=3)
-
 project_id, _ = create_test_folders.create_multi_layer_test_folders(
     num_folder_per_layer=3,
     project_name="API test project -folder structure 1",
 )
-# # project id: "syn58918330"
+# # # project id: "syn58918330"
 calculate_walk_folder_time(project_id="syn58918330", repeat=10)
 
-# # # case 2: a dataset folder has 5 layer, and each layer has 5 folders
+# # # # case 2: a dataset folder has 5 layer, and each layer has 5 folders
 create_test_folders = CreateTestFolders(max_depth=5)
 project_id, _ = create_test_folders.create_multi_layer_test_folders(
     num_folder_per_layer=5,
     project_name="API test project -folder structure 2",
 )
-# # # project id: syn58617307
+# # # # project id: syn58617307
 calculate_walk_folder_time(project_id="syn58617307", repeat=5)
 
-# # # case 3: a dataset folder has 10 layers, and each layer has 2 folders
+# # # # case 3: a dataset folder has 10 layers, and each layer has 2 folders
 create_test_folders = CreateTestFolders(max_depth=10)
 project_id, _ = create_test_folders.create_multi_layer_test_folders(
     num_folder_per_layer=2,
     project_name="API test project -folder structure 3",
 )
-#  project id: syn58621243
+# #  project id: syn58621243
 calculate_walk_folder_time(project_id="syn58621243", repeat=10)
 
-### keep the number of folders constant
+# ### keep the number of folders constant
 
-## case 1: one layer with 100 folders
+# ## case 1: first layer with 100 folders, 2 layers, and has 200 folders in total
 create_test_folders = CreateTestFolders(max_depth=2)
-project_id, _ = create_test_folders.create_multi_layer_test_folders_two(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=100,
     project_name="API test project - folder structure 4",
-    total_entities_to_create=200,
+    num_folder_per_layer=1,
 )
-## project id: syn58798762
-# calculate_walk_folder_time(project_id="syn58798762", repeat=10)
+# ## project id: syn58798762
+calculate_walk_folder_time(project_id="syn58798762", repeat=10)
 
 
-## case 2: three layers. First layer has 50 folders.
+# ## case 2: first layer with 50 folders, 4 layers, and has 200 folders in total
 create_test_folders = CreateTestFolders(max_depth=4)
 project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=50,
     project_name="API test project - folder structure 5",
-    total_folders_to_create=200,
+    num_folder_per_layer=1,
 )
 # project id: syn58799439
 calculate_walk_folder_time(project_id="syn58799439", repeat=10)
 
-## case 3: eight layers. First layer has 25 folders.
+# ## case 3: eight layers. First layer has 25 folders.
 create_test_folders = CreateTestFolders(max_depth=8)
 project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=25,
     project_name="API test project - folder structure 6",
-    total_folders_to_create=200,
+    num_folder_per_layer=1,
 )
 calculate_walk_folder_time(project_id="syn58799662", repeat=10)
-## project id: syn58799662
+# ## project id: syn58799662
 
 
-## skeep the number of folders constant and folder structure constant
-## case1: 10 files per layer starting from the second layer
-## so this has 200 folders plus 3(layers)*10(files per layer)*50=1500 files
+# ## skeep the number of folders constant and folder structure constant
+# ## case1: 10 files per layer starting from the second layer
+# ## so this has 200 folders plus 3(layers)*10(files per layer)*50=1500 files
 create_test_folders = CreateTestFolders(max_depth=4, test_folder_path="test_files")
 project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=50,
     project_name="API test project - folder structure 7",
-    total_folders_to_create=200,
+    num_folder_per_layer=1,
     num_files=10,
 )
 calculate_walk_folder_time(project_id="syn58887872", repeat=10)
 
 
-## case2: 20 files per layer starting from the second layer
-## so this has 200 folders plus 3(layers)*20(files per layer)*50=3000 files
+# ## case2: 20 files per layer starting from the second layer
+# ## so this has 200 folders plus 3(layers)*20(files per layer)*50=3000 files
 create_test_folders = CreateTestFolders(max_depth=4, test_folder_path="test_files")
 project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=50,
     project_name="API test project - folder structure 8",
-    total_folders_to_create=200,
+    num_folder_per_layer=1,
     num_files=20,
 )
 calculate_walk_folder_time(project_id="syn58890699", repeat=10)
@@ -140,7 +139,7 @@ create_test_folders = CreateTestFolders(max_depth=4, test_folder_path="test_file
 project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
     first_layer_num=50,
     project_name="API test project - folder structure 9",
-    total_folders_to_create=200,
+    num_folder_per_layer=1,
     num_files=40,
 )
 calculate_walk_folder_time(project_id="syn58943676", repeat=10)
