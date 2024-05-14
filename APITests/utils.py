@@ -4,7 +4,7 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Callable, Tuple, List, Union
+from typing import Callable, Tuple, List, Union, Optional
 
 import pytz
 import requests
@@ -129,11 +129,12 @@ def send_post_request(
     """
     try:
         # send request and calculate run time
-        dt_string, time_diff, status_code_dict = cal_time_api_call_post_request(
-            base_url,
-            params,
-            concurrent_threads,
-            manifest_to_send_func,
+        dt_string, time_diff, status_code_dict = cal_time_api_call(
+            url=base_url,
+            params=params,
+            concurrent_threads=concurrent_threads,
+            request_type="post",
+            manifest_to_send_func=manifest_to_send_func,
             file_path_manifest=file_path_manifest,
             headers=headers,
         )
@@ -194,15 +195,28 @@ def return_time_now(name_funct_call: Callable = None) -> str:
 
 
 def cal_time_api_call(
-    url: str, params: dict, concurrent_threads: int, headers: dict = None
+    url: str,
+    params: dict,
+    concurrent_threads: int,
+    headers: dict = None,
+    request_type: Optional[str] = "get",
+    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
+    file_path_manifest: Optional[str] = None,
 ) -> Tuple[str, float, dict]:
-    """
-    calculate the latency of api calls by sending get requests.
+    """calculate the latency of api calls by sending get requests.
+
     Args:
         url (str): the url that users want to access
         params (dict): the parameters need to use for the request
         concurrent_threads (int): number of concurrent threads requested by users
-        headers (dict): a header of dictionary
+        headers (dict, optional):a header of dictionary. Defaults to None.
+        request_type (Optional[str], optional): type of request. Defaults to "get". If running post request, please provide send function and also file path of a manifest
+        manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent. Defaults to None.
+        file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
+
+    Raises:
+        InvalidSchema: Not providing a valid url
+
     Returns:
         dt_string (str): start time of running the API endpoints.
         time_diff (float): time of finish running all requests.
@@ -214,10 +228,18 @@ def cal_time_api_call(
 
     # execute concurrent requests
     with ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(fetch, url, params, headers)
-            for x in range(concurrent_threads)
-        ]
+        if request_type == "get":
+            futures = [
+                executor.submit(fetch, url, params, headers)
+                for x in range(concurrent_threads)
+            ]
+        else:
+            futures = [
+                executor.submit(
+                    manifest_to_send_func, url, params, headers, file_path_manifest
+                )
+                for x in range(concurrent_threads)
+            ]
         all_status_code = {"200": 0, "500": 0, "503": 0, "504": 0}
         for f in concurrent.futures.as_completed(futures):
             try:
@@ -227,65 +249,11 @@ def cal_time_api_call(
                     logger.error(
                         f"{status_code} error running: {url} with using params {params}"
                     )
-                all_status_code[status_code_str] = all_status_code[status_code_str] + 1
+                all_status_code[status_code_str] += 1
             except InvalidSchema:
                 raise InvalidSchema(
                     f"No connection adapters were found for {url}. Please make sure that your URL is correct. "
                 )
-
-    time_diff = round(time.time() - start_time, 2)
-    logger.info(f"duration time of running {url}: {time_diff}")
-    return dt_string, time_diff, all_status_code
-
-
-def cal_time_api_call_post_request(
-    url: str,
-    params: dict,
-    concurrent_threads: int,
-    manifest_to_send_func: Callable[[str, dict], Response],
-    file_path_manifest: str,
-    headers: dict = None,
-) -> Tuple[str, float, dict]:
-    """
-    calculate the latency of api calls by sending post.
-    Args:
-        url (str): the url that users want to access
-        params (dict): the parameters need to use for the request
-        concurrent_threads (int): number of concurrent threads requested by users
-        manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent
-        headers (dict): headers used for API requests. For example, authorization headers.
-    Returns:
-        dt_string (str): start time of running the API endpoints.
-        time_diff (float): time of finish running all requests.
-        all_status_code (dict): dict; a dictionary that records the status code of run.
-    """
-    start_time = time.time()
-    # get time of running the api endpoint
-    dt_string = return_time_now()
-
-    # execute concurrent requests
-    with ThreadPoolExecutor() as executor:
-        futures = [
-            executor.submit(
-                manifest_to_send_func, url, params, headers, file_path_manifest
-            )
-            for x in range(concurrent_threads)
-        ]
-        all_status_code = {"200": 0, "500": 0, "503": 0, "504": 0}
-        for f in concurrent.futures.as_completed(futures):
-            try:
-                status_code = f.result().status_code
-                status_code_str = str(status_code)
-                if status_code_str != "200":
-                    logger.error(
-                        f"Encountered error {status_code_str} while running: {url} using params {params}"
-                    )
-                all_status_code[status_code_str] = all_status_code[status_code_str] + 1
-            except InvalidSchema:
-                raise InvalidSchema(
-                    f"No connection adapters were found for {url}. Please make sure that your URL is correct. "
-                )
-
     time_diff = round(time.time() - start_time, 2)
     logger.info(f"duration time of running {url}: {time_diff}")
     return dt_string, time_diff, all_status_code
