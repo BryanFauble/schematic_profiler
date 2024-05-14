@@ -37,7 +37,10 @@ def execute_manifest_generate_use_annotations_comparison(
 
         for count in range(num_time):
             _, time_diff, all_status_code = send_request(
-                base_url, gm.params, CONCURRENT_THREADS, gm.headers
+                base_url=base_url,
+                params=gm.params,
+                concurrent_threads=CONCURRENT_THREADS,
+                headers=gm.headers,
             )
             if all_status_code["200"] != 1:
                 logger.error("encountered an error when generating the manifest")

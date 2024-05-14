@@ -10,7 +10,7 @@ from utils import (
     StoreRuntime,
     save_run_time_result,
     send_manifest,
-    send_post_request,
+    send_request,
 )
 
 CONCURRENT_THREADS = 1
@@ -45,11 +45,11 @@ class ManifestValidate:
         for opt in restrict_rules_opt:
             params["restrict_rules"] = opt
 
-            dt_string, time_diff, status_code_dict = send_post_request(
+            dt_string, time_diff, status_code_dict = send_request(
                 base_url,
                 params,
                 CONCURRENT_THREADS,
-                send_manifest,
+                manifest_to_send_func=send_manifest,
                 file_path_manifest="test_manifests/synapse_storage_manifest_patient.csv",
             )
 
@@ -78,11 +78,11 @@ class ManifestValidate:
         # update parameter. For this example, validate a Biospecimen manifest
         params["data_type"] = "Biospecimen"
 
-        dt_string, time_diff, status_code_dict = send_post_request(
-            base_url,
-            params,
-            CONCURRENT_THREADS,
-            send_manifest,
+        dt_string, time_diff, status_code_dict = send_request(
+            base_url=base_url,
+            params=params,
+            concurrent_threads=CONCURRENT_THREADS,
+            manifest_to_send_func=send_manifest,
             file_path_manifest="test_manifests/synapse_storage_manifest_HTAN_HMS.csv",
         )
 
@@ -112,3 +112,6 @@ def monitor_manifest_validator() -> Tuple[Row, Row, Row]:
     row_three = vm_htan_manifest.validate_HTAN_data_manifest()
 
     return row_one, row_two, row_three
+
+
+monitor_manifest_validator()

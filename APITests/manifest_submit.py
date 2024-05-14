@@ -12,7 +12,7 @@ from utils import (
     StoreRuntime,
     save_run_time_result,
     send_manifest,
-    send_post_request,
+    send_request,
 )
 
 CONCURRENT_THREADS = 1
@@ -68,11 +68,11 @@ class ManifestSubmit:
                 params["data_type"] = opt
                 params["manifest_record_type"] = record_type
 
-                dt_string, time_diff, status_code_dict = send_post_request(
+                dt_string, time_diff, status_code_dict = send_request(
                     base_url,
                     params,
                     CONCURRENT_THREADS,
-                    manifest_to_send_func,
+                    manifest_to_send_func=manifest_to_send_func,
                     file_path_manifest=file_path_manifest,
                     headers=headers,
                 )

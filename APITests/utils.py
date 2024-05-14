@@ -103,69 +103,45 @@ def send_manifest(
     )
 
 
-def send_post_request(
+def send_request(
     base_url: str,
     params: dict,
     concurrent_threads: int,
-    manifest_to_send_func: Callable[[str, dict], Response],
-    file_path_manifest: str,
     headers: dict = None,
+    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
+    file_path_manifest: Optional[str] = None,
 ) -> Tuple[str, float, dict]:
-    """
-    sending post requests
+    """send post or get requests
+
     Args:
-        params (dict): a dictionary of parameters to send
         base_url (str): url of endpoint
+        params (dict): a dictionary of parameters to send
         concurrent_threads (int): number of concurrent threads
-        manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent
-        headers (dict): headers used for API requests. For example, authorization headers.
+        headers (dict, optional): headers used for API requests. For example, authorization headers. Default to None.
+        request_type (str, optional): type of request. Defaults to "get".
+        manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): a function that sends a post request that upload a manifest to be sent. Defaults to None.
+        file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
 
     Returns:
         dt_string (str): start time of running the API endpoints.
         time_diff (float): time of finish running all requests.
         all_status_code (dict): dict; a dictionary that records the status code of run.
-    Todo:
-        specify exception
     """
     try:
+        # if manifest path is provided, assume that it is a "post" request
+        if manifest_to_send_func and file_path_manifest:
+            request_type = "post"
+        else:
+            request_type = "get"
         # send request and calculate run time
         dt_string, time_diff, status_code_dict = cal_time_api_call(
             url=base_url,
             params=params,
             concurrent_threads=concurrent_threads,
-            request_type="post",
+            headers=headers,
+            request_type=request_type,
             manifest_to_send_func=manifest_to_send_func,
             file_path_manifest=file_path_manifest,
-            headers=headers,
-        )
-    # TO DO: add more details about raising different exception
-    # Should exception based on response type?
-    except Exception as err:
-        print(f"Unexpected {err=}, {type(err)=}")
-        raise
-    return dt_string, time_diff, status_code_dict
-
-
-def send_request(
-    base_url: str, params: dict, concurrent_threads: int, headers: dict = None
-) -> Tuple[str, float, dict]:
-    """
-    sending requests to different endpoint
-    Args:
-        params (dict): a dictionary of parameters to send
-        base_url (str): url of endpoint
-        concurrent_threads (int): number of concurrent threads
-        headers (dict): headers used for API requests. For example, authorization headers.
-    Returns:
-        dt_string (str): start time of running the API endpoints.
-        time_diff (float): time of finish running all requests.
-        all_status_code (dict): dict; a dictionary that records the status code of run.
-    """
-
-    try:
-        # send request and calculate run time
-        dt_string, time_diff, status_code_dict = cal_time_api_call(
-            base_url, params, concurrent_threads, headers
         )
     # TO DO: add more details about raising different exception
     # Should exception based on response type?
