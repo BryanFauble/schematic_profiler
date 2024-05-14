@@ -50,16 +50,18 @@ def get_change(current, previous):
 
 # case 1: a dataset folder has 2 layers, and each layer has 3 folders
 create_test_folders = CreateTestFolders(max_depth=3)
-project_id, _ = create_test_folders.create_multi_layer_test_folders(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
+    first_layer_num=3,
     num_folder_per_layer=3,
     project_name="API test project -folder structure 1",
 )
-# # # project id: "syn58918330"
+# project id: "syn58918330"
 calculate_walk_folder_time(project_id="syn58918330", repeat=10)
 
 # # # # case 2: a dataset folder has 5 layer, and each layer has 5 folders
 create_test_folders = CreateTestFolders(max_depth=5)
-project_id, _ = create_test_folders.create_multi_layer_test_folders(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
+    first_layer_num=5,
     num_folder_per_layer=5,
     project_name="API test project -folder structure 2",
 )
@@ -68,7 +70,8 @@ calculate_walk_folder_time(project_id="syn58617307", repeat=5)
 
 # # # # case 3: a dataset folder has 10 layers, and each layer has 2 folders
 create_test_folders = CreateTestFolders(max_depth=10)
-project_id, _ = create_test_folders.create_multi_layer_test_folders(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
+    first_layer_num=2,
     num_folder_per_layer=2,
     project_name="API test project -folder structure 3",
 )

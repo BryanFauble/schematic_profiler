@@ -236,80 +236,6 @@ class CreateTestFolders:
     def __post_init__(self):
         self.create_synapse_resource = CreateSynapseResources()
 
-    def create_test_folder_recursive(
-        self,
-        next_levels_test_folder: List[Folder],
-        num_folder_per_layer: int,
-        max_depth: int,
-    ) -> None:
-        """create number of test folders with a certain number of folders per layer
-
-        Args:
-            next_levels_test_folder (List[Folder]): next level of folder
-            num_folder_per_layer (int): number of folders per layer
-            max_depth (int): maximum depth of folders
-        """
-        if max_depth == 0:
-            return
-        new_levels_test_folder = []
-        for i in range(num_folder_per_layer):
-            for parent in next_levels_test_folder:
-                sub_data_folder = self.create_synapse_resource.create_test_folder(
-                    parent=parent, folder_name=f"Test folder {i}"
-                )
-                new_levels_test_folder.append(sub_data_folder)
-
-        self.create_test_folder_recursive(
-            num_folder_per_layer=num_folder_per_layer,
-            next_levels_test_folder=new_levels_test_folder,
-            max_depth=max_depth - 1,
-        )
-
-    def create_multi_layer_test_folders(
-        self,
-        num_folder_per_layer: int,
-        project_name: str,
-        ignore_first_layer: Optional[bool] = False,
-    ) -> Tuple[str, str, str]:
-        """create multiple layers of test folder for testing
-
-        Args:
-            num_folder_per_layer (int): number of folder per layer
-            project_name (str): project name
-            ignore_first_layer: if true, the first layer only has one folder
-
-        Returns:
-            Tuple[str, str, str]: data folder id, project id, asset view id
-        """
-
-        project, project_id = self.create_synapse_resource.create_test_project(
-            project_name
-        )
-        entity_view = self.create_synapse_resource.create_test_entity_view(
-            project_syn_id=project_id, project=project
-        )
-        first_layer_folder = []
-
-        if ignore_first_layer:
-            sub_data_folder = self.create_synapse_resource.create_test_folder(
-                parent=project, folder_name="Test folder"
-            )
-            first_layer_folder.append(sub_data_folder)
-        else:
-            # create the first layer
-            for i in range(num_folder_per_layer):
-                sub_data_folder = self.create_synapse_resource.create_test_folder(
-                    parent=project, folder_name=f"Test folder {i}"
-                )
-                first_layer_folder.append(sub_data_folder)
-
-        self.create_test_folder_recursive(
-            num_folder_per_layer=num_folder_per_layer,
-            next_levels_test_folder=first_layer_folder,
-            max_depth=self.max_depth - 1,
-        )
-        return project_id, entity_view.id
-
     def create_multi_layer_test_folders_files(
         self,
         first_layer_num: int,
@@ -407,6 +333,7 @@ class CreateTestFolders:
             next_levels_test_folder=new_levels_test_folder,
             num_files=num_files,
             test_folder_path=self.test_folder_path,
+            num_folder_per_layer=num_folder_per_layer,
         )
 
 
