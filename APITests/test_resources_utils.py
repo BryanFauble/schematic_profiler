@@ -310,7 +310,7 @@ class CreateTestFolders:
         )
         return project_id, entity_view.id
 
-    def create_multi_layer_test_folders_fixed_entities(
+    def create_multi_layer_test_folders_files(
         self,
         first_layer_num: int,
         project_name: str,
@@ -345,7 +345,7 @@ class CreateTestFolders:
             )
             first_layer_folder.append(sub_data_folder)
 
-        self.create_test_folder_fixed_entities_recursive(
+        self.create_test_folder_files_recursive(
             max_depth=self.max_depth - 1,
             next_levels_test_folder=first_layer_folder,
             num_folder_per_layer=num_folder_per_layer,
@@ -355,7 +355,7 @@ class CreateTestFolders:
 
         return project_id, entity_view.id
 
-    def create_test_folder_fixed_entities_recursive(
+    def create_test_folder_files_recursive(
         self,
         max_depth: int,
         next_levels_test_folder: List[Folder],
@@ -402,7 +402,7 @@ class CreateTestFolders:
                         )
                     )
 
-        self.create_test_folder_fixed_entities_recursive(
+        self.create_test_folder_files_recursive(
             max_depth=max_depth - 1,
             next_levels_test_folder=new_levels_test_folder,
             num_files=num_files,

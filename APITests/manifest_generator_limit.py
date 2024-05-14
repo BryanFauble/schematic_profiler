@@ -12,14 +12,14 @@ create_test_folders = CreateTestFolders(max_depth=2, test_folder_path="test_file
 
 # create a project with 2000 folders
 
-project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
     first_layer_num=1,
     project_name="API test project - manifest generate limit - 9",
     num_folder_per_layer=1800,
     num_files=1,
 )
 
-project_id, _ = create_test_folders.create_multi_layer_test_folders_fixed_entities(
+project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
     first_layer_num=1,
     project_name="API test project - manifest generate limit - 10",
     num_folder_per_layer=2000,
