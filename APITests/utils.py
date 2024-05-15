@@ -4,13 +4,13 @@ import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Callable, Tuple, List, Union, Optional
+from typing import Callable, Tuple, List, Union, Optional, Any
 
-import pytz
-import requests
-import synapseclient
+import pytz  # type: ignore
+import requests  # type: ignore
+import synapseclient  # type: ignore
 from requests import Response
-from requests.exceptions import InvalidSchema
+from requests.exceptions import InvalidSchema  # type: ignore
 from synapseclient import Table
 from dataclasses import dataclass
 
@@ -72,7 +72,7 @@ class CalculateRunTime:
     """
 
     url: str
-    headers: Optional[dict] = None
+    headers: Optional[dict[str, Any]] = None
 
     def fetch(self, params: dict) -> Response:
         """
@@ -85,7 +85,7 @@ class CalculateRunTime:
         response = requests.get(self.url, params=params, headers=self.headers)
         return response
 
-    def send_manifest(self, manifest_path: str, params: dict) -> Response:
+    def send_manifest(self, params: dict, manifest_path: str) -> Response:
         """Send an API request to an endpoint
         Args:
             manifest_path (str): file path of a manifest
@@ -159,22 +159,14 @@ class CalculateRunTime:
 
 @dataclass
 class FormatPerformanceOutput:
-    def return_time_now(name_funct_call: Callable = None) -> str:
+    def return_time_now(self) -> str:
         """
         Get the time now
-        Args:
-            name_funct_call (Callable): name of function call (for logging purposes)
         Returns:
             current time formatted as "%d/%m/%Y %H:%M:%S" as a string
         """
         now = datetime.now(pytz.timezone("US/Eastern"))
         dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-
-        if name_funct_call:
-            logger.info(
-                f"when running {name_funct_call} function, the time is: {dt_string}"
-            )
-
         return dt_string
 
     @staticmethod
@@ -182,10 +174,10 @@ class FormatPerformanceOutput:
         url: str,
         params: dict,
         concurrent_threads: int,
-        headers: dict = None,
+        headers: Optional[dict[str, Any]] = None,
         request_type: Optional[str] = "get",
         manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
-        file_path_manifest: Optional[str] = None,
+        file_path_manifest: Optional[str] = "",
     ) -> Tuple[str, float, dict]:
         """calculate the latency of api calls by sending get requests.
 
@@ -208,7 +200,8 @@ class FormatPerformanceOutput:
         """
         start_time = time.time()
         # get time of running the api endpoint
-        dt_string = FormatPerformanceOutput.return_time_now()
+        format_performance_output = FormatPerformanceOutput()
+        dt_string = format_performance_output.return_time_now()
 
         # execute concurrent requests
         with ThreadPoolExecutor() as executor:
@@ -219,10 +212,19 @@ class FormatPerformanceOutput:
                     for x in range(concurrent_threads)
                 ]
             else:
-                futures = [
-                    executor.submit(manifest_to_send_func, file_path_manifest, params)
-                    for x in range(concurrent_threads)
-                ]
+                # post request requires a send_manifest function and a valid manifest file path
+                if not manifest_to_send_func or not file_path_manifest:
+                    raise ValueError(
+                        "Please provide a function to send manifest and a valid manifest file path"
+                    )
+                else:
+                    futures = [
+                        executor.submit(
+                            manifest_to_send_func, file_path_manifest, params
+                        )
+                        for x in range(concurrent_threads)
+                    ]
+
             all_status_code = {"200": 0, "500": 0, "503": 0, "504": 0}
             for f in concurrent.futures.as_completed(futures):
                 try:
@@ -241,6 +243,7 @@ class FormatPerformanceOutput:
         logger.info(f"duration time of running {url}: {time_diff}")
         return dt_string, time_diff, all_status_code
 
+    @staticmethod
     def format_run_time_result(
         endpoint_name: str,
         description: str,
@@ -248,13 +251,13 @@ class FormatPerformanceOutput:
         num_concurrent: int,
         latency: float,
         status_code_dict: dict,
-        data_schema: str = None,
-        num_rows: int = None,
-        data_type: str = None,
-        output_format: str = None,
-        restrict_rules: bool = None,
-        manifest_record_type: str = None,
-        asset_view: str = None,
+        data_schema: str = "",
+        num_rows: int = 0,
+        data_type: str = "",
+        output_format: str = "",
+        restrict_rules: bool = False,
+        manifest_record_type: str = "",
+        asset_view: str = "",
     ) -> Row:
         """
         Record the result of running an endpoint as a dataframe

@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
-from typing import Callable, Tuple
-from requests import Response
+from typing import Callable, Tuple, Any
+import requests  # type: ignore
 import logging
 from utils import (
     Row,
@@ -47,8 +47,8 @@ class ManifestSubmit:
         record_type_lst: list,
         params: dict,
         description: str,
-        manifest_to_send_func: Callable[[str, dict], Response],
-        headers: dict,
+        manifest_to_send_func: Callable[[str, dict], requests.Response],
+        headers: dict[str, Any],
         file_path_manifest: str,
     ) -> MultiRow:
         """
@@ -92,8 +92,6 @@ class ManifestSubmit:
                 elif "dataflow" in description:
                     data_schema = "Data flow schema"
                     num_rows = 30
-                else:
-                    data_schema = None
 
                 result = FormatPerformanceOutput.format_run_time_result(
                     endpoint_name="model/submit",

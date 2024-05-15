@@ -12,7 +12,6 @@ from utils import (
 )
 
 CONCURRENT_THREADS = 1
-base_url = f"{BASE_URL}/manifest/generate"
 
 logger = logging.getLogger("manifest-generator")
 
@@ -32,9 +31,9 @@ class GenerateManifest:
             "data_type": self.data_type,
             "use_annotations": self.use_annotation,
         }
-
+        self.base_url = f"{BASE_URL}/manifest/generate"
         self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.cal_run_time = CalculateRunTime(url=base_url, headers=self.headers)
+        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
 
     def generate_new_manifest_example_model(self) -> Row:
         """

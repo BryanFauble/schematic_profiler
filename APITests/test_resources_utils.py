@@ -21,7 +21,7 @@ class CreateSynapseResources:
 
     def create_test_project(
         self, project_name: Optional[str] = "My favorite test project"
-    ) -> Project:
+    ) -> Tuple[Project, str]:
         """create test project
 
         Args:
@@ -107,8 +107,8 @@ class CreateSynapseResources:
 @dataclass
 class CreateTestFiles:
     num_test_files: int
+    text_to_write: str = "writing test files"
     test_folder_path: Optional[str] = None
-    text_to_write: Optional[str] = "writing test files"
 
     def write_test_file(self, file_path: str) -> None:
         """write mock test files"""
@@ -120,6 +120,10 @@ class CreateTestFiles:
     def create_local_test_files(self) -> None:
         """create local test files"""
         test_dir = self.test_folder_path
+
+        if not test_dir:
+            raise ValueError(f"{test_dir} that you provided does not exist")
+
         if os.path.exists(test_dir):
             shutil.rmtree(test_dir)
 
@@ -147,6 +151,10 @@ class CreateTestFiles:
             test_file (Str): test file name
         """
         test_folder = self.test_folder_path
+
+        if not test_folder:
+            raise ValueError("Test folder path is not set.")
+
         path_test_file = test_folder + "/" + test_file
         file = File(path=path_test_file)
         await file.store_async(parent=syn_dataset)
@@ -170,8 +178,8 @@ class CreateTestFiles:
         num_file: int,
         project_name: str,
         test_folder_path: str,
-        entity_view: Optional[str] = "test view",
-        text_to_write: Optional[str] = "writing test files",
+        text_to_write: str = "writing test files",
+        entity_view: str = "test view",
     ) -> Tuple[str, str, str]:
         """create test files in a given folder
 
@@ -185,7 +193,12 @@ class CreateTestFiles:
             Tuple[str, str, str]: data folder id, project id, asset view id
         """
         cyr = CreateSynapseResources()
-        _, project_id, data_folder, entity_view = cyr.create_all_basic_resources(
+        (
+            _,
+            project_id,
+            data_folder,
+            entity_view_new,
+        ) = cyr.create_all_basic_resources(
             project_name=project_name,
             folder_name=test_folder_path,
             entity_view_name=entity_view,
@@ -200,7 +213,7 @@ class CreateTestFiles:
 
         asyncio.run(ctf.store_multi_test_files_on_syn(syn_dataset=data_folder))
 
-        return data_folder.id, project_id, entity_view.id
+        return data_folder.id, project_id, entity_view_new.id
 
 
 @dataclass
@@ -244,7 +257,7 @@ class CreateTestFolders:
         self,
         num_folder_per_layer: int,
         project_name: str,
-    ) -> Tuple[str, str, str]:
+    ) -> Tuple[str, str]:
         """create multiple layers of test folder for testing
 
         Args:
@@ -252,7 +265,7 @@ class CreateTestFolders:
             project_name (str): project name
 
         Returns:
-            Tuple[str, str, str]: data folder id, project id, asset view id
+            Tuple[str, str]: project id, asset view id
         """
 
         project, project_id = self.create_synapse_resource.create_test_project(
@@ -283,7 +296,7 @@ class CreateTestFolders:
         first_layer_num: int,
         project_name: str,
         total_folders_to_create: int,
-        num_files: Optional[int] = 0,
+        num_files: int = 0,
     ) -> Tuple[str, str]:
         """create multiple layers of test folders with fixed total number of folders
 
@@ -327,7 +340,7 @@ class CreateTestFolders:
         max_depth: int,
         next_levels_test_folder: List[Folder],
         remained_entities_to_create: int,
-        num_files: Optional[int] = 0,
+        num_files: int = 0,
         test_folder_path: Optional[str] = None,
     ) -> None:
         """create number of test folders for a fixed number of entities and layers
