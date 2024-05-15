@@ -7,8 +7,8 @@ from utils import (
     EXAMPLE_SCHEMA_URL,
     HTAN_SCHEMA_URL,
     StoreRuntime,
-    send_request,
-    save_run_time_result,
+    FormatPerformanceOutput,
+    CalculateRunTime,
 )
 
 CONCURRENT_THREADS = 1
@@ -34,16 +34,19 @@ class GenerateManifest:
         }
 
         self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.cal_run_time = CalculateRunTime(url=base_url, headers=self.headers)
 
     def generate_new_manifest_example_model(self) -> Row:
         """
         Generate a new manifest as a google sheet by using the example data model
         """
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, self.params, CONCURRENT_THREADS
+
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            params=self.params,
+            concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as a google sheet by using the example data model",
             data_schema="example data schema",
@@ -64,11 +67,12 @@ class GenerateManifest:
         params = self.params
         params["output"] = output_format
 
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, self.params, CONCURRENT_THREADS
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            params=params,
+            concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as an excel spreadsheet by using the example data model",
             data_schema="example data schema",
@@ -84,11 +88,12 @@ class GenerateManifest:
         """
         Generate a new manifest as a google sheet by using the HTAN manifest
         """
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, self.params, CONCURRENT_THREADS
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            params=self.params,
+            concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as a google spreadsheet by using the HTAN data model",
             data_schema="HTAN data schema",
@@ -108,11 +113,11 @@ class GenerateManifest:
         params["dataset_id"] = "syn51078367"
         params["asset_view"] = "syn23643253"
 
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, self.params, CONCURRENT_THREADS, self.headers
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating an existing manifest as a google sheet by using the example data model",
             data_schema="example data schema",
@@ -131,9 +136,13 @@ def monitor_manifest_generator() -> Tuple[Row, Row, Row, Row]:
     gm_example = GenerateManifest(EXAMPLE_SCHEMA_URL)
     row_one = gm_example.generate_new_manifest_example_model()
     row_two = gm_example.generate_new_manifest_example_model_excel("excel")
+
     row_three = gm_example.generate_existing_manifest_google_sheet()
 
     gm_htan = GenerateManifest(HTAN_SCHEMA_URL)
     row_four = gm_htan.generate_new_manifest_HTAN_google_sheet()
 
     return row_one, row_two, row_three, row_four
+
+
+monitor_manifest_generator()

@@ -1,13 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 import logging
-from utils import (
-    Row,
-    BASE_URL,
-    StoreRuntime,
-    send_request,
-    save_run_time_result,
-)
+from utils import Row, BASE_URL, StoreRuntime, FormatPerformanceOutput, CalculateRunTime
 
 CONCURRENT_THREADS = 1
 
@@ -19,30 +13,29 @@ class ManifestStorage:
     token: str = StoreRuntime.get_access_token()
 
     def __post_init__(self):
-        self.params = {}
         self.headers = {"Authorization": f"Bearer {self.token}"}
 
 
+@dataclass
 class RetrieveAssetView(ManifestStorage):
+    def __post_init__(self):
+        self.base_url = f"{BASE_URL}/storage/assets/tables"
+        super().__post_init__()
+        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
+
     def retrieve_asset_view_as_json(self) -> Row:
         """
         Retrieve asset view table as a dataframe.
         """
-        # define base_url
-        base_url = f"{BASE_URL}/storage/assets/tables"
         # define the asset view to retrieve
         asset_view = "syn23643253"
-        params = self.params
-        params["asset_view"] = asset_view
+        params = {"asset_view": asset_view, "return_type": "json"}
 
-        # calculate latency for different return type
-        # TO DO: add csv
-        params["return_type"] = "json"
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, params, CONCURRENT_THREADS, headers=self.headers
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="storage/assets/tables",
             description=f"Retrieve asset view {asset_view} as a json",
             asset_view=asset_view,
@@ -54,6 +47,11 @@ class RetrieveAssetView(ManifestStorage):
 
 
 class RestrieveProjectDataset(ManifestStorage):
+    def __post_init__(self):
+        self.base_url = f"{BASE_URL}/storage/project/datasets"
+        super().__post_init__()
+        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
+
     def retrieve_project_dataset_api_call(
         self, project_id: str, asset_view: str
     ) -> Row:
@@ -63,18 +61,13 @@ class RestrieveProjectDataset(ManifestStorage):
             project_id: ID of a storage project.
             asset_view: ID of view listing all project data assets.
         """
-        base_url = f"{BASE_URL}/storage/project/datasets"
-        params = self.params
+        params = {"asset_view": asset_view, "project_id": project_id}
 
-        # update parameter
-        params["asset_view"] = asset_view
-        params["project_id"] = project_id
-
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url, params, CONCURRENT_THREADS, headers=self.headers
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
+            concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="storage/project/datasets",
             description=f"Retrieve all datasets under project {project_id} in asset view {asset_view} as a json",
             dt_string=dt_string,

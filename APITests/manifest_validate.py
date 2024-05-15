@@ -8,14 +8,11 @@ from utils import (
     Row,
     MultiRow,
     StoreRuntime,
-    save_run_time_result,
-    send_manifest,
-    send_request,
+    FormatPerformanceOutput,
+    CalculateRunTime,
 )
 
 CONCURRENT_THREADS = 1
-
-base_url = f"{BASE_URL}/model/validate"
 
 logger = logging.getLogger("manifest-validate")
 
@@ -30,6 +27,8 @@ class ManifestValidate:
             "schema_url": self.url,
         }
         self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.base_url = f"{BASE_URL}/model/validate"
+        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
 
     def validate_example_data_manifest(self) -> MultiRow:
         """
@@ -45,15 +44,14 @@ class ManifestValidate:
         for opt in restrict_rules_opt:
             params["restrict_rules"] = opt
 
-            dt_string, time_diff, status_code_dict = send_request(
-                base_url,
+            dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
                 params,
                 CONCURRENT_THREADS,
-                manifest_to_send_func=send_manifest,
+                manifest_to_send_func=self.cal_run_time.send_manifest,
                 file_path_manifest="test_manifests/synapse_storage_manifest_patient.csv",
             )
 
-            result = save_run_time_result(
+            result = FormatPerformanceOutput.format_run_time_result(
                 endpoint_name="model/validate",
                 description=f"Validate an example data model using the patient component with restrict_rules set to {opt}. The manifest has 600 rows.",
                 data_schema="example data schema",
@@ -78,15 +76,14 @@ class ManifestValidate:
         # update parameter. For this example, validate a Biospecimen manifest
         params["data_type"] = "Biospecimen"
 
-        dt_string, time_diff, status_code_dict = send_request(
-            base_url=base_url,
+        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
             params=params,
             concurrent_threads=CONCURRENT_THREADS,
-            manifest_to_send_func=send_manifest,
+            manifest_to_send_func=self.cal_run_time.send_manifest,
             file_path_manifest="test_manifests/synapse_storage_manifest_HTAN_HMS.csv",
         )
 
-        return save_run_time_result(
+        return FormatPerformanceOutput.format_run_time_result(
             endpoint_name="model/validate",
             description="Validate a HTAN data model using the biospecimen component with restrict_rules set to False. The manifest has around 700 rows.",
             data_schema="HTAN data schema",

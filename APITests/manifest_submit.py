@@ -10,13 +10,11 @@ from utils import (
     DATA_FLOW_SCHEMA_URL,
     EXAMPLE_SCHEMA_URL,
     StoreRuntime,
-    save_run_time_result,
-    send_manifest,
-    send_request,
+    FormatPerformanceOutput,
+    CalculateRunTime,
 )
 
 CONCURRENT_THREADS = 1
-base_url = f"{BASE_URL}/model/submit"
 
 logger = logging.getLogger("manifest-submit")
 
@@ -40,6 +38,8 @@ class ManifestSubmit:
             "data_model_labels": "class_label",
         }
         self.headers = {"Authorization": f"Bearer {self.token}"}
+        self.base_url = f"{BASE_URL}/model/submit"
+        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
 
     @staticmethod
     def execute_manifest_submission(
@@ -62,19 +62,22 @@ class ManifestSubmit:
             headers (dict): headers used for API requests. For example, authorization headers.
             file_path (str): file path of manifest to send
         """
+        base_url = f"{BASE_URL}/model/submit"
+        cal_run_time = CalculateRunTime(url=base_url, headers=headers)
+
         combined_list = []
         for opt in data_type_lst:
             for record_type in record_type_lst:
                 params["data_type"] = opt
                 params["manifest_record_type"] = record_type
 
-                dt_string, time_diff, status_code_dict = send_request(
-                    base_url,
-                    params,
-                    CONCURRENT_THREADS,
+                base_url = f"{BASE_URL}/model/submit"
+
+                dt_string, time_diff, status_code_dict = cal_run_time.send_request(
+                    params=params,
+                    concurrent_threads=CONCURRENT_THREADS,
                     manifest_to_send_func=manifest_to_send_func,
                     file_path_manifest=file_path_manifest,
-                    headers=headers,
                 )
 
                 if opt:
@@ -92,7 +95,7 @@ class ManifestSubmit:
                 else:
                     data_schema = None
 
-                result = save_run_time_result(
+                result = FormatPerformanceOutput.format_run_time_result(
                     endpoint_name="model/submit",
                     description=f"{description} {record_type} with validation set to {validate_setting}. The manifest has {num_rows} rows.",
                     data_schema=data_schema,
@@ -127,7 +130,7 @@ class ManifestSubmit:
             record_type_lst,
             params,
             description,
-            send_manifest,
+            self.cal_run_time.send_manifest,
             headers=self.headers,
             file_path_manifest="test_manifests/synapse_storage_manifest_patient.csv",
         )
@@ -148,7 +151,7 @@ class ManifestSubmit:
             record_type_lst,
             params,
             description,
-            send_manifest,
+            self.cal_run_time.send_manifest,
             headers=self.headers,
             file_path_manifest="test_manifests/synapse_storage_manifest_dataflow.csv",
         )

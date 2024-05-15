@@ -1,6 +1,6 @@
 import logging
-from utils import StoreRuntime, send_manifest, send_post_request
-from test_resources_utils import create_test_files
+from utils import StoreRuntime, CalculateRunTime
+from test_resources_utils import CreateTestFiles
 
 logger = logging.getLogger("test upload annotations parameter")
 
@@ -30,6 +30,7 @@ def execute_submission_comparison(
         "use_schema_label": "class_label",
         "data_model_labels": "class_label",
     }
+    cal_run_time = CalculateRunTime(url=base_url, headers=headers)
 
     for i in file_annotations_upload_lst:
         submission_duration = []
@@ -37,8 +38,11 @@ def execute_submission_comparison(
 
         # try submitting x amount of time and calculate average
         for count in range(num_time):
-            _, time_diff, all_status_code = send_post_request(
-                base_url, params, 1, send_manifest, file_path_manifest, headers
+            _, time_diff, all_status_code = cal_run_time.send_request(
+                params=params,
+                concurrent_threads=1,
+                manifest_to_send_func=cal_run_time.send_manifest,
+                file_path_manifest=file_path_manifest,
             )
             if all_status_code["200"] != 1:
                 print("encountered an error when submitting the manifest")
@@ -53,14 +57,15 @@ def execute_submission_comparison(
 test_folder_dir = (
     "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_files_folder"
 )
-dataset_id, project_id, asset_view_id = create_test_files(
+dataset_id, project_id, asset_view_id = CreateTestFiles.create_test_files(
     num_file=10,
     project_name="API test project random",
     test_folder_path=test_folder_dir,
 )
+
 file_path_manifest = "/Users/lpeng/Downloads/test_bulkrna-seq.csv"
 
-# dataset_id = "syn57430952"
-# project_id = "syn57429449"
-# asset_view_id = "syn57429597"
+dataset_id = "syn57430952"
+project_id = "syn57429449"
+asset_view_id = "syn57429597"
 execute_submission_comparison(dataset_id, asset_view_id, file_path_manifest, 10)
