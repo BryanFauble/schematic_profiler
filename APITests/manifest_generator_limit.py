@@ -12,19 +12,19 @@ create_test_folders = CreateTestFolders(max_depth=2, test_folder_path="test_file
 
 # create a project with 2000 folders
 
-project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
-    first_layer_num=1,
-    project_name="API test project - manifest generate limit - 9",
-    num_folder_per_layer=1800,
-    num_files=1,
-)
+# project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
+#     first_layer_num=1,
+#     project_name="API test project - manifest generate limit - 9",
+#     num_folder_per_layer=1800,
+#     num_files=1,
+# )
 
-project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
-    first_layer_num=1,
-    project_name="API test project - manifest generate limit - 10",
-    num_folder_per_layer=2000,
-    num_files=1,
-)
+# project_id, _ = create_test_folders.create_multi_layer_test_folders_files(
+#     first_layer_num=1,
+#     project_name="API test project - manifest generate limit - 10",
+#     num_folder_per_layer=2000,
+#     num_files=1,
+# )
 
 
 def execute_manifest_generate_benchmark(
@@ -33,11 +33,12 @@ def execute_manifest_generate_benchmark(
     num_time: int,
     asset_view_id: Optional[str],
     dataset_id: Optional[str],
+    output_format: Optional[str],
 ):
     gm = GenerateManifest(url=schema_url, use_annotation=True, data_type=data_type)
     gm.params["asset_view"] = asset_view_id
     gm.params["dataset_id"] = dataset_id
-    gm.params["output_format"] = "google_sheet"
+    gm.params["output_format"] = output_format
 
     base_url = (
         "https://schematic-dev-refactor.api.sagebionetworks.org/v1/manifest/generate"
@@ -55,14 +56,25 @@ def execute_manifest_generate_benchmark(
 
 schema_url = "https://raw.githubusercontent.com/Sage-Bionetworks/schematic/develop/tests/data/example.model.jsonld"
 data_type = "BulkRNA-seqAssay"
-asset_view_id = ""
-dataset_id = ""
-num_time = 10
+asset_view_id = "syn59450546"
+dataset_id = "syn59450547"
+num_time = 1
 
-# execute_manifest_generate_benchmark(
-#     schema_url=schema_url,
-#     data_type=data_type,
-#     num_time=num_time,
-#     asset_view_id=asset_view_id,
-#     dataset_id=dataset_id,
-# )
+execute_manifest_generate_benchmark(
+    schema_url=schema_url,
+    data_type=data_type,
+    num_time=num_time,
+    asset_view_id=asset_view_id,
+    dataset_id=dataset_id,
+    output_format="excel",
+)
+
+
+execute_manifest_generate_benchmark(
+    schema_url=schema_url,
+    data_type=data_type,
+    num_time=num_time,
+    asset_view_id=asset_view_id,
+    dataset_id=dataset_id,
+    output_format="google_sheet",
+)
