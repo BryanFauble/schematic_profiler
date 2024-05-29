@@ -54,16 +54,15 @@ def execute_submission_comparison(
         )
 
 
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_files_folder"
-)
+test_folder_dir = "test_files_folder"
+
 dataset_id, project_id, asset_view_id = CreateTestFiles.create_test_files(
     num_file=10,
     project_name="API test project random",
-    test_folder_path=test_folder_dir,
+    test_folder_name=test_folder_dir,
 )
 
-file_path_manifest = "/Users/lpeng/Downloads/test_bulkrna-seq.csv"
+file_path_manifest = "/file/path/to/test_bulkrna-seq.csv"
 
 dataset_id = "syn57430952"
 project_id = "syn57429449"

@@ -177,7 +177,7 @@ class CreateTestFiles:
     def create_test_files(
         num_file: int,
         project_name: str,
-        test_folder_path: str,
+        test_folder_name: str,
         text_to_write: str = "writing test files",
         entity_view: str = "test view",
     ) -> Tuple[str, str, str]:
@@ -200,13 +200,13 @@ class CreateTestFiles:
             entity_view_new,
         ) = cyr.create_all_basic_resources(
             project_name=project_name,
-            folder_name=test_folder_path,
+            folder_name=test_folder_name,
             entity_view_name=entity_view,
         )
 
         ctf = CreateTestFiles(
             num_test_files=num_file,
-            test_folder_path=test_folder_path,
+            test_folder_path=test_folder_name,
             text_to_write=text_to_write,
         )
         ctf.create_local_test_files()

@@ -53,13 +53,12 @@ def execute_manifest_generate_use_annotations_comparison(
 
 
 # case 1: a dataset folder with 10 dataset files
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_new_files"
-)
+test_folder_dir = "test_new_files"
+
 dataset_id, project_id, asset_view_id = create_test_files(
     num_file=10,
     project_name="API manifest generate project",
-    test_folder_path=test_folder_dir,
+    test_folder_name=test_folder_dir,
 )
 print("dataset id", dataset_id)
 print("project id", project_id)
@@ -78,13 +77,11 @@ execute_manifest_generate_use_annotations_comparison(
 
 
 # case 2: a dataset folder with 10 dataset files
-test_folder_dir = (
-    "/Users/lpeng/Documents/schematic_profiler/schematic_profiler/test_new_files"
-)
+test_folder_dir = "test_new_files"
 dataset_id, project_id, asset_view_id = create_test_files(
     num_file=100,
     project_name="API manifest generate project 2",
-    test_folder_path=test_folder_dir,
+    test_folder_name=test_folder_dir,
 )
 print("dataset id", dataset_id)
 print("project id", project_id)
