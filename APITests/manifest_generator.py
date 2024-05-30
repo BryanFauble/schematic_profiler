@@ -7,8 +7,8 @@ from utils import (
     EXAMPLE_SCHEMA_URL,
     HTAN_SCHEMA_URL,
     StoreRuntime,
-    FormatPerformanceOutput,
     CalculateRunTime,
+    format_run_time_result,
 )
 
 CONCURRENT_THREADS = 1
@@ -45,7 +45,7 @@ class GenerateManifest:
             concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as a google sheet by using the example data model",
             data_schema="example data schema",
@@ -71,7 +71,7 @@ class GenerateManifest:
             concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as an excel spreadsheet by using the example data model",
             data_schema="example data schema",
@@ -92,7 +92,7 @@ class GenerateManifest:
             concurrent_threads=CONCURRENT_THREADS,
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating a manifest as a google spreadsheet by using the HTAN data model",
             data_schema="HTAN data schema",
@@ -116,7 +116,7 @@ class GenerateManifest:
             concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="manifest/generate",
             description="Generating an existing manifest as a google sheet by using the example data model",
             data_schema="example data schema",

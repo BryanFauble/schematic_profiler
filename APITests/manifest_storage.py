@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 import logging
-from utils import Row, BASE_URL, StoreRuntime, FormatPerformanceOutput, CalculateRunTime
+from utils import Row, BASE_URL, StoreRuntime, CalculateRunTime, format_run_time_result
 
 CONCURRENT_THREADS = 1
 
@@ -35,7 +35,7 @@ class RetrieveAssetView(ManifestStorage):
             concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="storage/assets/tables",
             description=f"Retrieve asset view {asset_view} as a json",
             asset_view=asset_view,
@@ -67,7 +67,7 @@ class RestrieveProjectDataset(ManifestStorage):
             concurrent_threads=CONCURRENT_THREADS, params=params
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="storage/project/datasets",
             description=f"Retrieve all datasets under project {project_id} in asset view {asset_view} as a json",
             dt_string=dt_string,

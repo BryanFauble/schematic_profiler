@@ -10,8 +10,8 @@ from utils import (
     DATA_FLOW_SCHEMA_URL,
     EXAMPLE_SCHEMA_URL,
     StoreRuntime,
-    FormatPerformanceOutput,
     CalculateRunTime,
+    format_run_time_result,
 )
 
 CONCURRENT_THREADS = 1
@@ -93,7 +93,7 @@ class ManifestSubmit:
                     data_schema = "Data flow schema"
                     num_rows = 30
 
-                result = FormatPerformanceOutput.format_run_time_result(
+                result = format_run_time_result(
                     endpoint_name="model/submit",
                     description=f"{description} {record_type} with validation set to {validate_setting}. The manifest has {num_rows} rows.",
                     data_schema=data_schema,

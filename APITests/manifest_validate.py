@@ -8,8 +8,8 @@ from utils import (
     Row,
     MultiRow,
     StoreRuntime,
-    FormatPerformanceOutput,
     CalculateRunTime,
+    format_run_time_result,
 )
 
 CONCURRENT_THREADS = 1
@@ -51,7 +51,7 @@ class ManifestValidate:
                 file_path_manifest="test_manifests/synapse_storage_manifest_patient.csv",
             )
 
-            result = FormatPerformanceOutput.format_run_time_result(
+            result = format_run_time_result(
                 endpoint_name="model/validate",
                 description=f"Validate an example data model using the patient component with restrict_rules set to {opt}. The manifest has 600 rows.",
                 data_schema="example data schema",
@@ -83,7 +83,7 @@ class ManifestValidate:
             file_path_manifest="test_manifests/synapse_storage_manifest_HTAN_HMS.csv",
         )
 
-        return FormatPerformanceOutput.format_run_time_result(
+        return format_run_time_result(
             endpoint_name="model/validate",
             description="Validate a HTAN data model using the biospecimen component with restrict_rules set to False. The manifest has around 700 rows.",
             data_schema="HTAN data schema",

@@ -1,7 +1,7 @@
 import concurrent.futures
 import logging
 import os
-import time
+from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Callable, Tuple, List, Union, Optional, Any
@@ -140,7 +140,7 @@ class CalculateRunTime:
                 dt_string,
                 time_diff,
                 status_code_dict,
-            ) = FormatPerformanceOutput.cal_time_api_call(
+            ) = cal_time_api_call(
                 url=self.url,
                 params=params,
                 concurrent_threads=concurrent_threads,
@@ -157,151 +157,201 @@ class CalculateRunTime:
         return dt_string, time_diff, status_code_dict
 
 
-@dataclass
-class FormatPerformanceOutput:
-    def return_time_now(self) -> str:
-        """
-        Get the time now
-        Returns:
-            current time formatted as "%d/%m/%Y %H:%M:%S" as a string
-        """
-        now = datetime.now(pytz.timezone("US/Eastern"))
-        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-        return dt_string
+def return_time_now() -> str:
+    """
+    Get the time now
+    Returns:
+        current time formatted as "%d/%m/%Y %H:%M:%S" as a string
+    """
+    now = datetime.now(pytz.timezone("US/Eastern"))
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    return dt_string
 
-    @staticmethod
-    def cal_time_api_call(
-        url: str,
-        params: dict,
-        concurrent_threads: int,
-        headers: Optional[dict[str, Any]] = None,
-        request_type: Optional[str] = "get",
-        manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
-        file_path_manifest: Optional[str] = "",
-    ) -> Tuple[str, float, dict]:
-        """calculate the latency of api calls by sending get requests.
 
-        Args:
-            url (str): the url that users want to access
-            params (dict): the parameters need to use for the request
-            concurrent_threads (int): number of concurrent threads requested by users
-            headers (dict, optional):a header of dictionary. Defaults to None.
-            request_type (Optional[str], optional): type of request. Defaults to "get". If running post request, please provide send function and also file path of a manifest
-            manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent. Defaults to None.
-            file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
+def execute_requests(
+    url: str,
+    params: dict,
+    concurrent_threads: int,
+    headers: Optional[dict[str, Any]] = None,
+    request_type: Optional[str] = "get",
+    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
+    file_path_manifest: Optional[str] = "",
+) -> List[Response]:
+    """calculate the latency of api calls by sending get requests.
 
-        Raises:
-            InvalidSchema: Not providing a valid url
+    Args:
+        url (str): the url that users want to access
+        params (dict): the parameters need to use for the request
+        concurrent_threads (int): number of concurrent threads requested by users
+        headers (dict, optional):a header of dictionary. Defaults to None.
+        request_type (Optional[str], optional): type of request. Defaults to "get". If running post request, please provide send function and also file path of a manifest
+        manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent. Defaults to None.
+        file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
 
-        Returns:
-            dt_string (str): start time of running the API endpoints.
-            time_diff (float): time of finish running all requests.
-            all_status_code (dict): dict; a dictionary that records the status code of run.
-        """
-        start_time = time.time()
-        # get time of running the api endpoint
-        format_performance_output = FormatPerformanceOutput()
-        dt_string = format_performance_output.return_time_now()
+    Raises:
+        InvalidSchema: Not providing a valid url
 
-        # execute concurrent requests
-        with ThreadPoolExecutor() as executor:
-            if request_type == "get":
-                cal_run_time = CalculateRunTime(url, headers)
+    Returns:
+        Responses: a list of responses
+    """
+    # execute concurrent requests
+    with ThreadPoolExecutor() as executor:
+        if request_type == "get":
+            cal_run_time = CalculateRunTime(url, headers)
+            futures = [
+                executor.submit(cal_run_time.fetch, params)
+                for x in range(concurrent_threads)
+            ]
+        else:
+            # post request requires a send_manifest function and a valid manifest file path
+            if not manifest_to_send_func or not file_path_manifest:
+                raise ValueError(
+                    "Please provide a function to send manifest and a valid manifest file path"
+                )
+            else:
                 futures = [
-                    executor.submit(cal_run_time.fetch, params)
+                    executor.submit(manifest_to_send_func, file_path_manifest, params)
                     for x in range(concurrent_threads)
                 ]
-            else:
-                # post request requires a send_manifest function and a valid manifest file path
-                if not manifest_to_send_func or not file_path_manifest:
-                    raise ValueError(
-                        "Please provide a function to send manifest and a valid manifest file path"
-                    )
-                else:
-                    futures = [
-                        executor.submit(
-                            manifest_to_send_func, file_path_manifest, params
-                        )
-                        for x in range(concurrent_threads)
-                    ]
+    http_responses = []
+    for f in concurrent.futures.as_completed(futures):
+        try:
+            response = f.result()
+            http_responses.append(response)
+            if response.status_code != 200:
+                logger.error(
+                    f"{response.status_code} error running: {url} with using params {params}"
+                )
+        except InvalidSchema:
+            raise InvalidSchema(
+                f"No connection adapters were found for {url}. Please make sure that your URL is correct. "
+            )
+    return http_responses
 
-            all_status_code = {"200": 0, "500": 0, "503": 0, "504": 0}
-            for f in concurrent.futures.as_completed(futures):
-                try:
-                    status_code = f.result().status_code
-                    status_code_str = str(status_code)
-                    if status_code_str != "200":
-                        logger.error(
-                            f"{status_code} error running: {url} with using params {params}"
-                        )
-                    all_status_code[status_code_str] += 1
-                except InvalidSchema:
-                    raise InvalidSchema(
-                        f"No connection adapters were found for {url}. Please make sure that your URL is correct. "
-                    )
-        time_diff = round(time.time() - start_time, 2)
-        logger.info(f"duration time of running {url}: {time_diff}")
-        return dt_string, time_diff, all_status_code
 
-    @staticmethod
-    def format_run_time_result(
-        endpoint_name: str,
-        description: str,
-        dt_string: str,
-        num_concurrent: int,
-        latency: float,
-        status_code_dict: dict,
-        data_schema: str = "",
-        num_rows: int = 0,
-        data_type: str = "",
-        output_format: str = "",
-        restrict_rules: bool = False,
-        manifest_record_type: str = "",
-        asset_view: str = "",
-    ) -> Row:
-        """
-        Record the result of running an endpoint as a dataframe
-        Args:
-            endpoint_name (str): name of the endpoint being run
-            description (str): more details description of the case being run
-            num_concurrent (int): number of concurrent requests
-            latency (float): latency of finishing the run
-            status_code_dict (dict): dictionary of status code
-            dt_string (str): start time of the test
-            data_schema (str, optional): default to None. the data schema used by the function
-            num_rows (int, optional): default to None. number of rows of a given manifest
-            data_type (str, optional): default to None. data type/component being used
-            output_format (str, optional): default to None. output format of a given manifest
-            restrict_rules (bool, optional): default to None. if restrict_rules parameter gets set to true
-            manifest_record_type (str, optional): default to None. Manifest storage type. Four options: file only, file+entities, table+file, table+file+entities
-            asset view (str, optional): default to None. asset view of the asset store.
-        """
-        # get specific number of status code
-        num_status_200 = status_code_dict["200"]
-        num_status_500 = status_code_dict["500"]
-        num_status_504 = status_code_dict["504"]
-        num_status_503 = status_code_dict["503"]
+def parse_http_requests(http_responses: Response) -> dict[str, int]:
+    """parse http requests and return a dictionary that contains string and integers
 
-        new_row = [
-            endpoint_name,
-            description,
-            data_schema,
-            num_rows,
-            data_type,
-            output_format,
-            restrict_rules,
-            asset_view,
-            dt_string,
-            manifest_record_type,
-            num_concurrent,
-            latency,
-            num_status_200,
-            num_status_500,
-            num_status_504,
-            num_status_503,
-        ]
+    Args:
+        http_responses (Responses): http responses
 
-        return new_row
+    Returns:
+        dict: a status dictionary
+    """
+    all_status_code = {"200": 0, "500": 0, "503": 0, "504": 0}
+    for response in http_responses:
+        status_code = response.status_code
+        status_code_str = str(status_code)
+
+        if status_code_str in all_status_code:
+            all_status_code[status_code_str] += 1
+        else:
+            logger.error("an error occurred")
+    return all_status_code
+
+
+def cal_time_api_call(
+    url: str,
+    params: dict,
+    concurrent_threads: int,
+    headers: Optional[dict[str, Any]] = None,
+    request_type: Optional[str] = "get",
+    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
+    file_path_manifest: Optional[str] = "",
+) -> Tuple[str, float, dict]:
+    """calculate the latency of api calls by sending get requests.
+
+    Args:
+        url (str): the url that users want to access
+        params (dict): the parameters need to use for the request
+        concurrent_threads (int): number of concurrent threads requested by users
+        headers (dict, optional):a header of dictionary. Defaults to None.
+        request_type (Optional[str], optional): type of request. Defaults to "get". If running post request, please provide send function and also file path of a manifest
+        manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent. Defaults to None.
+        file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
+
+    Raises:
+        InvalidSchema: Not providing a valid url
+
+    Returns:
+        dt_string (str): start time of running the API endpoints.
+        time_diff (float): time of finish running all requests.
+        all_status_code (dict): dict; a dictionary that records the status code of run.
+    """
+    start_time = perf_counter()
+    http_responses = execute_requests(
+        url=url,
+        params=params,
+        concurrent_threads=concurrent_threads,
+        headers=headers,
+        request_type=request_type,
+        manifest_to_send_func=manifest_to_send_func,
+        file_path_manifest=file_path_manifest,
+    )
+    time_diff = round(perf_counter() - start_time, 2)
+    all_status_code = parse_http_requests(http_responses)
+    dt_string = return_time_now()
+    return dt_string, time_diff, all_status_code
+
+
+def format_run_time_result(
+    endpoint_name: str,
+    description: str,
+    dt_string: str,
+    num_concurrent: int,
+    latency: float,
+    status_code_dict: dict,
+    data_schema: str = "",
+    num_rows: int = 0,
+    data_type: str = "",
+    output_format: str = "",
+    restrict_rules: bool = False,
+    manifest_record_type: str = "",
+    asset_view: str = "",
+) -> Row:
+    """
+    Record the result of running an endpoint as a dataframe
+    Args:
+        endpoint_name (str): name of the endpoint being run
+        description (str): more details description of the case being run
+        num_concurrent (int): number of concurrent requests
+        latency (float): latency of finishing the run
+        status_code_dict (dict): dictionary of status code
+        dt_string (str): start time of the test
+        data_schema (str, optional): default to None. the data schema used by the function
+        num_rows (int, optional): default to None. number of rows of a given manifest
+        data_type (str, optional): default to None. data type/component being used
+        output_format (str, optional): default to None. output format of a given manifest
+        restrict_rules (bool, optional): default to None. if restrict_rules parameter gets set to true
+        manifest_record_type (str, optional): default to None. Manifest storage type. Four options: file only, file+entities, table+file, table+file+entities
+        asset view (str, optional): default to None. asset view of the asset store.
+    """
+    # get specific number of status code
+    num_status_200 = status_code_dict["200"]
+    num_status_500 = status_code_dict["500"]
+    num_status_504 = status_code_dict["504"]
+    num_status_503 = status_code_dict["503"]
+
+    new_row = [
+        endpoint_name,
+        description,
+        data_schema,
+        num_rows,
+        data_type,
+        output_format,
+        restrict_rules,
+        asset_view,
+        dt_string,
+        manifest_record_type,
+        num_concurrent,
+        latency,
+        num_status_200,
+        num_status_500,
+        num_status_504,
+        num_status_503,
+    ]
+
+    return new_row
 
 
 class StoreRuntime:
