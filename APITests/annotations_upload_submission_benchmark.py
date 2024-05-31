@@ -1,11 +1,18 @@
 import logging
-from utils import StoreRuntime, CalculateRunTime
+from utils import (
+    StoreRuntime,
+    send_manifest_async,
+    execute_requests_async,
+    parse_http_requests,
+)
 from test_resources_utils import CreateTestFiles
+import asyncio
+from time import perf_counter
 
 logger = logging.getLogger("test upload annotations parameter")
 
 
-def execute_submission_comparison(
+async def execute_submission_comparison(
     dataset_id: str, asset_view_id: str, file_path_manifest: str, num_time: int
 ) -> None:
     """for this use case, only interested in if file_annotations_upload_lst is set to True or False
@@ -30,20 +37,29 @@ def execute_submission_comparison(
         "use_schema_label": "class_label",
         "data_model_labels": "class_label",
     }
-    cal_run_time = CalculateRunTime(url=base_url, headers=headers)
 
     for i in file_annotations_upload_lst:
         submission_duration = []
         params["file_annotations_upload"] = i
 
         # try submitting x amount of time and calculate average
-        for count in range(num_time):
-            _, time_diff, all_status_code = cal_run_time.send_request(
-                params=params,
-                concurrent_threads=1,
-                manifest_to_send_func=cal_run_time.send_manifest,
-                file_path_manifest=file_path_manifest,
-            )
+        for _ in range(num_time):
+            start_time = perf_counter()
+            requests_to_execute = []
+            for i in range(1):
+                requests_to_execute.append(
+                    asyncio.create_task(
+                        send_manifest_async(
+                            url=base_url,
+                            headers=headers,
+                            params=params,
+                            manifest_path=file_path_manifest,
+                        )
+                    )
+                )
+            http_responses = await execute_requests_async(requests_to_execute)
+            all_status_code = parse_http_requests(http_responses)
+            time_diff = round(perf_counter() - start_time, 2)
             if all_status_code["200"] != 1:
                 print("encountered an error when submitting the manifest")
             else:
@@ -67,4 +83,6 @@ file_path_manifest = "/file/path/to/test_bulkrna-seq.csv"
 dataset_id = "syn57430952"
 project_id = "syn57429449"
 asset_view_id = "syn57429597"
-execute_submission_comparison(dataset_id, asset_view_id, file_path_manifest, 10)
+asyncio.run(
+    execute_submission_comparison(dataset_id, asset_view_id, file_path_manifest, 10)
+)

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Tuple
 import logging
 from utils import (
@@ -7,9 +8,13 @@ from utils import (
     EXAMPLE_SCHEMA_URL,
     HTAN_SCHEMA_URL,
     StoreRuntime,
-    CalculateRunTime,
     format_run_time_result,
+    fetch_async,
+    parse_http_requests,
+    execute_requests_async,
+    return_time_now,
 )
+import asyncio
 
 CONCURRENT_THREADS = 1
 
@@ -33,17 +38,27 @@ class GenerateManifest:
         }
         self.base_url = f"{BASE_URL}/manifest/generate"
         self.headers = {"Authorization": f"Bearer {self.token}"}
-        self.cal_run_time = CalculateRunTime(url=self.base_url, headers=self.headers)
 
-    def generate_new_manifest_example_model(self) -> Row:
+    async def generate_new_manifest_example_model(self) -> Row:
         """
         Generate a new manifest as a google sheet by using the example data model
         """
+        start_time = perf_counter()
 
-        dt_string, time_diff, status_code_dict = self.cal_run_time.send_request(
-            params=self.params,
-            concurrent_threads=CONCURRENT_THREADS,
-        )
+        requests_to_execute = []
+        for _ in range(CONCURRENT_THREADS):
+            requests_to_execute.append(
+                asyncio.create_task(
+                    fetch_async(
+                        url=self.base_url,
+                        headers=self.headers,
+                        params=self.params,
+                    )
+                )
+            )
+        http_responses = await execute_requests_async(requests_to_execute)
+        status_code_dict = parse_http_requests(http_responses)
+        time_diff = round(perf_counter() - start_time, 2)
 
         return format_run_time_result(
             endpoint_name="manifest/generate",
@@ -51,7 +66,7 @@ class GenerateManifest:
             data_schema="example data schema",
             data_type=self.data_type,
             output_format="google sheet",
-            dt_string=dt_string,
+            dt_string=return_time_now(),
             num_concurrent=CONCURRENT_THREADS,
             latency=time_diff,
             status_code_dict=status_code_dict,
@@ -130,10 +145,10 @@ class GenerateManifest:
         )
 
 
-def monitor_manifest_generator() -> Tuple[Row, Row, Row, Row]:
+async def monitor_manifest_generator() -> Tuple[Row, Row, Row, Row]:
     logger.info("Monitoring manifest generation")
     gm_example = GenerateManifest(EXAMPLE_SCHEMA_URL)
-    row_one = gm_example.generate_new_manifest_example_model()
+    row_one = await gm_example.generate_new_manifest_example_model()
     row_two = gm_example.generate_new_manifest_example_model_excel("excel")
 
     row_three = gm_example.generate_existing_manifest_google_sheet()
@@ -144,4 +159,4 @@ def monitor_manifest_generator() -> Tuple[Row, Row, Row, Row]:
     return row_one, row_two, row_three, row_four
 
 
-monitor_manifest_generator()
+asyncio.run(monitor_manifest_generator())

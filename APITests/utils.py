@@ -4,7 +4,8 @@ import os
 from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import Callable, Tuple, List, Union, Optional, Any
+from typing import Callable, Tuple, List, Union, Optional, Any, Dict
+import asyncio
 
 import pytz  # type: ignore
 import requests  # type: ignore
@@ -62,99 +63,51 @@ Row = List[Union[str, int, dict, bool]]
 MultiRow = List[Row]
 
 
-@dataclass
-class CalculateRunTime:
-    """a dataclass for calculating request run time of key schematic operations
-
-    Attributes:
-        url: The URL to which the HTTP request is sent.
-        headers: HTTP headers added to the request.
+async def send_manifest_async(
+    url: str, headers: Dict[str, Any], params: Dict, manifest_path: str
+) -> Response:
     """
+    TODO: Fix the description and args $$$$$$$$$$
 
-    url: str
-    headers: Optional[dict[str, Any]] = None
 
-    def fetch(self, params: dict) -> Response:
-        """
-        Trigger a get request
-        Args:
-            params: parameters of running the request.
-        Returns:
-            Response: a response object
-        """
-        response = requests.get(self.url, params=params, headers=self.headers)
-        return response
 
-    def send_manifest(self, params: dict, manifest_path: str) -> Response:
-        """Send an API request to an endpoint
-        Args:
-            manifest_path (str): file path of a manifest
-            params (dict): parameters of running the request.
-        Returns:
-            Responsce: a response object
-        """
-        wd = os.getcwd()
-        test_manifest_path = os.path.join(wd, manifest_path)
+    Send an API request to an endpoint
+    Args:
+        manifest_path (str): file path of a manifest
+        params (dict): parameters of running the request.
+    Returns:
+        Responsce: a response object
+    """
+    wd = os.getcwd()
+    test_manifest_path = os.path.join(wd, manifest_path)
 
-        if not os.path.exists(test_manifest_path):
-            logger.error(
-                "the manifest does not exist. Please provide a valid manifest file path"
-            )
-
-        return requests.post(
-            self.url,
-            params=params,
-            headers=self.headers,
-            files={"file_name": open(test_manifest_path, "rb")},
+    if not os.path.exists(test_manifest_path):
+        logger.error(
+            "the manifest does not exist. Please provide a valid manifest file path"
         )
 
-    def send_request(
-        self,
-        params: dict,
-        concurrent_threads: int,
-        manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
-        file_path_manifest: Optional[str] = None,
-    ) -> Tuple[str, float, dict]:
-        """send post or get requests
+    return requests.post(
+        url,
+        params=params,
+        headers=headers,
+        files={"file_name": open(test_manifest_path, "rb")},
+    )
 
-        Args:
-            params (dict): a dictionary of parameters when sending HTTP requests
-            concurrent_threads (int): number of concurrent threads
-            manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): a function that sends a post request that upload a manifest to be sent. Defaults to None.
-            file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
 
-        Returns:
-            dt_string (str): start time of running the API endpoints.
-            time_diff (float): time of finish running all requests.
-            all_status_code (dict): dict; a dictionary that records the status code of run.
-        """
-        try:
-            # if manifest path is provided, assume that it is a "post" request
-            if manifest_to_send_func and file_path_manifest:
-                request_type = "post"
-            else:
-                request_type = "get"
+async def fetch_async(url: str, headers: Dict[str, Any], params: dict) -> Response:
+    """
+    TODO: Fix the description and args $$$$$$$$$$
 
-            # send request and calculate run time
-            (
-                dt_string,
-                time_diff,
-                status_code_dict,
-            ) = cal_time_api_call(
-                url=self.url,
-                params=params,
-                concurrent_threads=concurrent_threads,
-                headers=self.headers,
-                request_type=request_type,
-                manifest_to_send_func=manifest_to_send_func,
-                file_path_manifest=file_path_manifest,
-            )
-        # TO DO: add more details about raising different exception
-        # Should exception based on response type?
-        except Exception as err:
-            print(f"Unexpected {err=}, {type(err)=}")
-            raise
-        return dt_string, time_diff, status_code_dict
+
+
+    Trigger a get request
+    Args:
+        params: parameters of running the request.
+    Returns:
+        Response: a response object
+    """
+    response = requests.get(url, params=params, headers=headers)
+    return response
 
 
 def return_time_now() -> str:
@@ -168,16 +121,13 @@ def return_time_now() -> str:
     return dt_string
 
 
-def execute_requests(
-    url: str,
-    params: dict,
-    concurrent_threads: int,
-    headers: Optional[dict[str, Any]] = None,
-    request_type: Optional[str] = "get",
-    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
-    file_path_manifest: Optional[str] = "",
+async def execute_requests_async(
+    requests_to_execute: List[asyncio.Future],
 ) -> List[Response]:
-    """calculate the latency of api calls by sending get requests.
+    """
+    TODO: Fix the description and args $$$$$$$$$$
+
+    calculate the latency of api calls by sending get requests.
 
     Args:
         url (str): the url that users want to access
@@ -194,39 +144,35 @@ def execute_requests(
     Returns:
         Responses: a list of responses
     """
-    # execute concurrent requests
-    with ThreadPoolExecutor() as executor:
-        if request_type == "get":
-            cal_run_time = CalculateRunTime(url, headers)
-            futures = [
-                executor.submit(cal_run_time.fetch, params)
-                for x in range(concurrent_threads)
-            ]
-        else:
-            # post request requires a send_manifest function and a valid manifest file path
-            if not manifest_to_send_func or not file_path_manifest:
-                raise ValueError(
-                    "Please provide a function to send manifest and a valid manifest file path"
-                )
-            else:
-                futures = [
-                    executor.submit(manifest_to_send_func, file_path_manifest, params)
-                    for x in range(concurrent_threads)
-                ]
     http_responses = []
-    for f in concurrent.futures.as_completed(futures):
-        try:
-            response = f.result()
-            http_responses.append(response)
-            if response.status_code != 200:
-                logger.error(
-                    f"{response.status_code} error running: {url} with using params {params}"
+    loop = asyncio.get_event_loop()
+    with ThreadPoolExecutor() as executor:
+        tasks_to_run_in_executor = []
+        for request_to_execute in requests_to_execute:
+            tasks_to_run_in_executor.append(
+                loop.run_in_executor(
+                    executor,
+                    request_to_execute,
                 )
-        except InvalidSchema:
-            raise InvalidSchema(
-                f"No connection adapters were found for {url}. Please make sure that your URL is correct. "
             )
-    return http_responses
+
+        for future in asyncio.as_completed(tasks_to_run_in_executor):
+            try:
+                response = await future
+                http_responses.append(response)
+                if response.status_code != 200:
+                    # TODO: Proper formatting of this error message
+                    logger.error(
+                        f"{response.status_code} error running: {requests_to_execute} with using params {requests_to_execute}"
+                    )
+            except InvalidSchema:
+                # TODO: Proper formatting of this error message
+                raise InvalidSchema(
+                    f"No connection adapters were found for {requests_to_execute}. Please make sure that your URL is correct. "
+                )
+            except Exception as ex:
+                logger.exception(ex)
+        return http_responses
 
 
 def parse_http_requests(http_responses: Response) -> dict[str, int]:
@@ -248,50 +194,6 @@ def parse_http_requests(http_responses: Response) -> dict[str, int]:
         else:
             logger.error("an error occurred")
     return all_status_code
-
-
-def cal_time_api_call(
-    url: str,
-    params: dict,
-    concurrent_threads: int,
-    headers: Optional[dict[str, Any]] = None,
-    request_type: Optional[str] = "get",
-    manifest_to_send_func: Optional[Callable[[str, dict], Response]] = None,
-    file_path_manifest: Optional[str] = "",
-) -> Tuple[str, float, dict]:
-    """calculate the latency of api calls by sending get requests.
-
-    Args:
-        url (str): the url that users want to access
-        params (dict): the parameters need to use for the request
-        concurrent_threads (int): number of concurrent threads requested by users
-        headers (dict, optional):a header of dictionary. Defaults to None.
-        request_type (Optional[str], optional): type of request. Defaults to "get". If running post request, please provide send function and also file path of a manifest
-        manifest_to_send_func (Optional[Callable[[str, dict], Response]], optional): manifest_to_send_func (Callable): a function that sends a post request that upload a manifest to be sent. Defaults to None.
-        file_path_manifest (Optional[str], optional): file path of a manifest. Defaults to None.
-
-    Raises:
-        InvalidSchema: Not providing a valid url
-
-    Returns:
-        dt_string (str): start time of running the API endpoints.
-        time_diff (float): time of finish running all requests.
-        all_status_code (dict): dict; a dictionary that records the status code of run.
-    """
-    start_time = perf_counter()
-    http_responses = execute_requests(
-        url=url,
-        params=params,
-        concurrent_threads=concurrent_threads,
-        headers=headers,
-        request_type=request_type,
-        manifest_to_send_func=manifest_to_send_func,
-        file_path_manifest=file_path_manifest,
-    )
-    time_diff = round(perf_counter() - start_time, 2)
-    all_status_code = parse_http_requests(http_responses)
-    dt_string = return_time_now()
-    return dt_string, time_diff, all_status_code
 
 
 def format_run_time_result(
