@@ -18,12 +18,10 @@ def calculate_walk_folder_time(project_id: str, repeat: int) -> None:
     syn = srt.login_synapse()
     duration = []
     for i in range(repeat):
-        # start_time = time.time()
         start_time = time.perf_counter()
         walked_path = walk(syn, project_id, includeTypes=["folder", "file"])
         # actually run the function
         walked_path = list((walked_path))
-        # end_time = time.time()
         end_time = time.perf_counter()
 
         print(f"{i} time trying, and the duration is {end_time - start_time}")
